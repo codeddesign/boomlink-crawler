@@ -25,4 +25,11 @@ class DataStandards
 
         return $url;
     }
+
+    /**
+     * @return string
+     */
+    public static function getDefaultLinksInfo() {
+        return '';
+    }
 }

@@ -2,14 +2,11 @@
 
 class Social
 {
-    protected $social_links, $curl, $stats;
+    protected $social_links, $stats, $curl;
 
-    function __construct($link, $curl_opts = false)
+    function __construct($link, $curl_opts = array())
     {
-        $curl_opts = array(
-            'header' => FALSE,
-            // todo: add proxy;
-        );
+        // todo: add proxy;
 
         $this->curl = new Curl($curl_opts);
         $this->social_links = array(

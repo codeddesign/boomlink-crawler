@@ -2,7 +2,7 @@
 
 class Curl
 {
-    private $_curl_config, $_curl_sets, $_content, $_header, $_links, $_debug;
+    protected $curl_config, $curl_sets, $content, $header, $links, $debug, $link_info;
 
     /**
      * @param array $opts
@@ -10,10 +10,9 @@ class Curl
      */
     function __construct(array $opts = array())
     {
-        $this->_debug = false;
-
-        // ..
-        $this->_links = NULL;
+        // sets:
+        $this->debug = true;
+        $this->links = $this->link_info = NULL;
         $this->setCurlOptions($opts);
     }
 
@@ -22,7 +21,7 @@ class Curl
      */
     public function addLinks($links)
     {
-        $this->_links = $links;
+        $this->links = $links;
     }
 
     /**
@@ -30,40 +29,38 @@ class Curl
      */
     public function setCurlOptions(array $opts = array())
     {
-        $this->_curl_sets = $opts;
+        $this->curl_sets = $opts;
 
         // changeable options
         $options_assoc = array(
-            'header' => 'CURLOPT_HEADER',
-            'follow' => 'CURLOPT_FOLLOWLOCATION',
-            'agent' => 'CURLOPT_USERAGENT',
             'timeout' => 'CURLOPT_CONNECTTIMEOUT',
+            'agent' => 'CURLOPT_USERAGENT',
         );
 
         // curl options
-        $this->_curl_config = array(
-            // changeable:
-            CURLOPT_HEADER => TRUE,
-            CURLOPT_USERAGENT => "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36",
-            CURLOPT_FOLLOWLOCATION => TRUE,
-
-            // main:
-            CURLOPT_RETURNTRANSFER => TRUE,
-            CURLOPT_SSL_VERIFYPEER => FALSE,
-            CURLOPT_FRESH_CONNECT => TRUE,
+        $this->curl_config = array(
+            // defaults:
             CURLOPT_CONNECTTIMEOUT => 3, // <- seconds
+            CURLOPT_USERAGENT => "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36",
+
+            // don't change:
+            CURLOPT_HEADER => TRUE,
+            CURLOPT_FOLLOWLOCATION => TRUE,
+            CURLOPT_RETURNTRANSFER => TRUE,
+            CURLOPT_FRESH_CONNECT => TRUE,
+            CURLOPT_SSL_VERIFYPEER => FALSE,
         );
 
         // add options values if available for change:
-        foreach ($this->_curl_sets as $s_key => $value) {
+        foreach ($this->curl_sets as $s_key => $value) {
             if (array_key_exists($s_key, $options_assoc)) {
-                $this->_curl_config[constant($options_assoc[$s_key])] = $this->_curl_sets[$s_key];
+                $this->curl_config[constant($options_assoc[$s_key])] = $this->curl_sets[$s_key];
             }
         }
 
         // to add or not to add the proxy:
-        if (isset($this->_curl_sets['proxy']) AND ($this->_curl_sets['proxy']) !== NULL) {
-            list($ip, $port, $username, $password) = explode(":", trim($this->_curl_sets["proxy"]));
+        if (isset($this->curl_sets['proxy']) AND ($this->curl_sets['proxy']) !== NULL) {
+            list($ip, $port, $username, $password) = explode(":", trim($this->curl_sets["proxy"]));
 
             $curl_proxy_config = array(
                 CURLOPT_PROXYTYPE => "HTTP",
@@ -72,7 +69,7 @@ class Curl
                 CURLOPT_PROXYUSERPWD => $username . ':' . $password,
             );
 
-            $this->_curl_config += $curl_proxy_config;
+            $this->curl_config += $curl_proxy_config;
         }
     }
 
@@ -81,14 +78,15 @@ class Curl
      */
     function run()
     {
-        if ($this->_links === NULL) {
-            exit('Curl does no have any links set.');
+        if ($this->links === NULL) {
+            echo('Curl does no have any links set.');
+            return;
         }
 
-        if (!is_array($this->_links)) {
-            $this->runSingle($this->_links);
+        if (!is_array($this->links)) {
+            $this->runSingle($this->links);
         } else {
-            $this->runMultiple($this->_links);
+            $this->runMultiple($this->links);
         }
     }
 
@@ -96,39 +94,43 @@ class Curl
      * @param $url
      * @return resource
      */
-    private function initSingleCurl($url)
+    protected function initSingleCurl($url)
     {
         $con = curl_init();
         curl_setopt($con, CURLOPT_URL, DataStandards::getCleanURL($url));
-        curl_setopt_array($con, $this->_curl_config);
+        curl_setopt_array($con, $this->curl_config);
         return $con;
     }
 
-    private function debugCurlConnection($con)
+    /**
+     * @param resource $con
+     * @param int|string $key
+     */
+    protected function setLinkInfo($con, $key = 0)
     {
-        if($this->_debug) {
-            echo '<pre>';
-            print_r(curl_getinfo($con));
-            echo '</pre>';
-        }
+        $this->link_info[$key] = curl_getinfo($con);
     }
 
     /**
      * @param $url
      */
-    private function runSingle($url)
+    protected function runSingle($url)
     {
-        // run ONE:
+        // run:
         $content = curl_exec($con = $this->initSingleCurl($url));
-        $this->debugCurlConnection($con);
-        curl_close($con);
+
+        // save some data first:
+        $this->setLinkInfo($con);
         $this->setBodyParts($content);
+
+        // close:
+        curl_close($con);
     }
 
     /**
      * @param array $urls
      */
-    private function runMultiple(array $urls)
+    protected function runMultiple(array $urls)
     {
         $con = array();
 
@@ -141,19 +143,22 @@ class Curl
             curl_multi_add_handle($mh, $con[$u_key]);
         }
 
-        // run MULTIPLE:
+        // run:
         $running = null;
         do {
             curl_multi_exec($mh, $running);
         } while ($running > 0);
 
-        // close handles:
+        // remove handles:
         foreach ($con as $u_key => $c) {
+            // save some data first:
+            $this->setLinkInfo($con[$u_key], $u_key);
             $this->setBodyParts(curl_multi_getcontent($con[$u_key]), $u_key);
-            $this->debugCurlConnection($con[$u_key]);
+
             curl_multi_remove_handle($mh, $con[$u_key]);
         }
 
+        // close:
         curl_multi_close($mh);
     }
 
@@ -161,28 +166,10 @@ class Curl
      * @param $content
      * @param int|string $key
      */
-    private function setBodyParts($content, $key = 0)
+    protected function setBodyParts($content, $key = 0)
     {
-        $this->_content[$key] = utf8_decode($content);
-        $this->_header[$key] = '';
-    }
-
-    /**
-     * @return bool|string
-     */
-    public function getFinalLocation()
-    {
-        $header = $this->getHeaderOnly();
-        $finalLocation = false;
-
-        $lines = explode("\n", $header);
-        foreach ($lines as $l_num => $line) {
-            if (stripos($line, 'Location:' !== false) AND preg_match('/Location:(.*?)\n/', $line, $matched)) {
-                $finalLocation = trim($matched[1]);
-            }
-        }
-
-        return $finalLocation;
+        $this->content[$key] = trim(substr(utf8_decode($content), $this->link_info[$key]['header_size']));
+        $this->header[$key] = ($this->curl_config[CURLOPT_HEADER] === FALSE) ? '' : trim(substr($content, 0, $this->link_info[$key]['header_size']));
     }
 
     /**
@@ -190,10 +177,10 @@ class Curl
      */
     public function getHeaderOnly()
     {
-        if (count($this->_header) == 1) {
-            return $this->_header[0];
+        if (count($this->header) == 1) {
+            return $this->header[0];
         } else {
-            return $this->_header;
+            return $this->header;
         }
     }
 
@@ -202,10 +189,58 @@ class Curl
      */
     public function getBodyOnly()
     {
-        if (count($this->_content) == 1) {
-            return $this->_content[0];
+        if (count($this->content) == 1) {
+            return $this->content[0];
         } else {
-            return $this->_content;
+            return $this->content;
         }
+    }
+
+    /**
+     * @return array
+     * ^ more precisely it returns array that holds $needed
+     */
+    public function getLinkInfo()
+    {
+        $info = array();
+        $default = DataStandards::getDefaultLinksInfo();
+        $needed = array_flip(array(
+            'url',
+            'content_type',
+            'http_code',
+            'primary_ip',
+        ));
+
+        if($this->debug) {
+            print_r($this->link_info);
+        }
+
+        // get only needed data:
+        if (isset($this->link_info) AND is_array($this->link_info)) {
+            foreach ($this->link_info as $key => $arr) {
+                foreach ($arr as $temp_key => $temp_value) {
+                    if (array_key_exists($temp_key, $needed)) {
+                        $info[$key][$temp_key] = $temp_value;
+                    }
+                }
+            }
+        }
+
+        // just in case: apply default values:
+        if (count($info) == 0) {
+            foreach ($needed as $n_key => $n_value) {
+                $needed[$n_key] = $default;
+            }
+
+            foreach ($this->link_info as $key => $arr) {
+                $info[$key] = $needed;
+            }
+        }
+
+        if (count($info) == 1) {
+            return $info[key($info)];
+        }
+
+        return $info;
     }
 }
