@@ -204,16 +204,13 @@ class Curl
     {
         $info = array();
         $default = DataStandards::getDefaultLinksInfo();
+
         $needed = array_flip(array(
             'url',
             'content_type',
             'http_code',
             'primary_ip',
         ));
-
-        if($this->debug) {
-            print_r($this->link_info);
-        }
 
         // get only needed data:
         if (isset($this->link_info) AND is_array($this->link_info)) {

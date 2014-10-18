@@ -1,35 +1,64 @@
 <?php
-
+#todo - more questions, tests and adapts
 class WhoIs
 {
     CONST PORT = 43, TIMEOUT = 3;
-    public $timeout, $errno, $errmsg, $domain, $tld, $ip;
+    protected $timeout, $errno, $errmsg, $domain, $tld, $ip, $whois_server, $needed;
 
     function __construct($url)
     {
-        $info = parse_url($url);
+        // default:
+        $this->needed = array();
 
-        //sets:
-        if (array_key_exists("host", $info)) {
-            $domain_temp = $info["host"];
-            $domain_temp = str_ireplace("www.", "", $domain_temp);
-            $this->domain = $domain_temp;
-        } else {
-            $this->domain = $url;
-        }
+        // set domain:
+        $this->domain = DataStandards::getHost($url);
 
-        $parts = explode(".", $this->domain);
-        $this->tld = $parts[count($parts) - 1];
+        // set tld, ip:
+        $this->tld = DataStandards::getTLD($this->domain);
+        $this->ip = DataStandards::getIPByHost($this->domain);
 
-        $this->ip = gethostbyname($this->domain);
+        // get 'whois' server:
+        $this->set_server_info();
+        echo 'domain_info -> '.$this->get_domain_info();
+        exit;
+        // get ip, server location, hosting company
+        $this->parse_network_record();
     }
 
+    /**
+     * @return array
+     */
+    function getInfo()
+    {
+        return $this->needed;
+    }
+
+    /**
+     * @return string
+     */
     function get_domain_info()
     {
-        $server = $this->get_whois_server();
-        if (strlen($server) > 0) {
-            $data = $this->main_query($server, $this->domain);
-            echo $data;
+        if ($this->whois_server !== NULL) {
+            return $this->main_query($this->whois_server, '-T dn '.$this->domain);
+        } else {
+            return 'No \'whois\' server found.';
+        }
+    }
+
+    protected function set_server_info()
+    {
+        // default:
+        $this->whois_server = $this->date_changed = NULL;
+        $server = 'whois.iana.org';
+
+        $data = $this->main_query($server, $this->tld . '.');
+        echo $data;
+        if (preg_match("/whois:(.*?)\n/", $data, $matched)) {
+            $this->whois_server = trim($matched[1]);
+        }
+
+        if (preg_match("/changed:(.*?)\n/", $data, $matched)) {
+            $this->needed['date_changed'] = trim($matched[1]);
         }
     }
 
@@ -37,22 +66,8 @@ class WhoIs
        see: http://ubuntuforums.org/archive/index.php/t-1961277.html
     */
 
-    function get_whois_server()
-    {
-        $server = "whois.iana.org";
-
-        $result = "";
-        $data = $this->main_query($server, $this->tld . ".");
-        if (preg_match("/whois: (.*?)\n/", $data, $matched)) {
-            $result = trim($matched[1]);
-        }
-
-        return $result;
-    }
-
     /* checking for domain on the whois server */
-
-    function main_query($server, $extra)
+    protected function main_query($server, $extra)
     {
         $message = "";
 
@@ -66,13 +81,21 @@ class WhoIs
         return $message;
     }
 
-    /* host information based on domain ip */
-
-    function get_parsed_network_record()
+    /**
+     *
+     */
+    protected function parse_network_record()
     {
         $result = $this->get_network_record();
-        $new = $out = array(); // containers
+        $new = array(); // containers
         $network_ok = false;
+
+        // default:
+        $out = array(
+            'server_ip' => $this->ip,
+            'server_location' => '',
+            'hosting_company' => '',
+        );
 
         foreach ($result as $n_name => $data) {
             //parse the results and create an array:
@@ -113,21 +136,20 @@ class WhoIs
             $good = $new[$network_ok];
 
             //sets:
-            $out["server_ip"] = $this->ip;
-            $out["server_location"] = $good["country"];
-            if (array_key_exists("orgname", $good)) {
-                $out["hosting_company"] = $good["orgname"];
-            } else {
-                $out["hosting_company"] = $good["netname"];
-            }
-        } else {
-            #echo "something went wrong..";
+            $out = array(
+                'server_ip' => $this->ip,
+                'server_location' => $good["country"],
+                'hosting_company' => array_key_exists("orgname", $good) ? $good["orgname"] : $good["netname"],
+            );
         }
 
-        return $out;
+        $this->needed += $out;
     }
 
-    function get_network_record()
+    /**
+     * @return array
+     */
+    protected function get_network_record()
     {
         $servers = array(
             "ripe" => "whois.ripe.net",
@@ -137,7 +159,7 @@ class WhoIs
         $temp_info = array();
         foreach ($servers as $s_name => $server) {
             //check ip format, because in case it fails it returns the domain name:
-            if ($this->ip != $this->domain) {
+            if ($this->ip !== $this->domain) {
                 $extra = $this->ip;
                 $temp_info[$s_name] = $this->main_query($server, $extra);
             }
@@ -146,8 +168,3 @@ class WhoIs
         return $temp_info;
     }
 }
-
-//tests:
-/*$url = $_GET["url"];
-$w = new FsoWhois($url);
-print_r($w->get_parsed_network_record());*/
