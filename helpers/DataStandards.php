@@ -9,13 +9,19 @@ class DataStandards
     public static function getHost($url)
     {
         $url = trim($url);
-        $parts = parse_url($url);
 
+        // parse url won't work properly if 'http' is missing:
+        if (substr($url, 0, 4) !== 'http') {
+            $url = 'http://' . $url;
+        }
+
+        $parts = parse_url($url);
         if (array_key_exists("host", $parts)) {
             return str_ireplace("www.", "", $parts["host"]);
-        } else {
-            return str_replace(array('/', '#'), '', $url);
         }
+
+        // this should never happen:
+        return false;
     }
 
     /**
@@ -24,7 +30,7 @@ class DataStandards
      */
     public static function getIPByHost($host)
     {
-        return gethostbyname($host);
+        return gethostbyname('www.' . $host);
     }
 
     /**
@@ -57,5 +63,37 @@ class DataStandards
     public static function getDefaultLinksInfo()
     {
         return '';
+    }
+
+    /**
+     * @param $ip
+     * @return array
+     */
+    public static function getDefaultNetworkRecord()
+    {
+        $d = ''; // OR 'n/a' ?
+
+        return array(
+            'server_ip' => $d,
+            'server_location' => $d,
+            'registration_date' => $d,
+            'hosting_company' => $d,
+        );
+    }
+
+    /**
+     * @param $string
+     * @return string
+     */
+    public static function getCleanDate($string)
+    {
+        $string = trim($string);
+
+        if (strpos($string, 'T') !== false) {
+            $parts = explode('T', $string);
+            return $parts[0];
+        }
+
+        return $string;
     }
 }
