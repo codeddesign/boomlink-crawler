@@ -30,7 +30,7 @@ class DataStandards
      */
     public static function getIPByHost($host)
     {
-        return gethostbyname('www.' . $host);
+        return gethostbyname($host);
     }
 
     /**

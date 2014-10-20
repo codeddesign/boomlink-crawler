@@ -13,7 +13,10 @@ class Curl
         // sets:
         $this->debug = true;
         $this->links = $this->link_info = NULL;
-        $this->setCurlOptions($opts);
+
+        if(count($opts) > 0) {
+            $this->setCurlOptions($opts);
+        }
     }
 
     /**

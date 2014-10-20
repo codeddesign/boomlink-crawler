@@ -194,11 +194,11 @@ class WhoIs
             if (!$found) {
                 $body = $this->socket_request($server, $this->ip);
                 $parsed = $this->parse_response($body);
-                print_r($parsed);
+
                 if (isset($parsed['netname'])) {
                     $temp_value = strtolower($parsed['netname']);
                     if (stripos($temp_value, "ripe") === false AND stripos($temp_value, "arin") === false) {
-                        //$found = true;
+                        $found = true;
                         $data = $parsed;
                     }
                 }
