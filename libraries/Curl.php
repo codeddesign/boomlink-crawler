@@ -14,9 +14,8 @@ class Curl
         $this->debug = true;
         $this->links = $this->link_info = NULL;
 
-        if(count($opts) > 0) {
-            $this->setCurlOptions($opts);
-        }
+        // needed: apply options
+        $this->setCurlOptions($opts);
     }
 
     /**
@@ -72,7 +71,7 @@ class Curl
                 CURLOPT_PROXYUSERPWD => $username . ':' . $password,
             );
 
-            $this->curl_config += $curl_proxy_config;
+            $this->curl_config = array_merge($this->curl_config, $curl_proxy_config);
         }
     }
 
@@ -171,7 +170,7 @@ class Curl
      */
     protected function setBodyParts($content, $key = 0)
     {
-        $this->content[$key] = trim(substr(utf8_decode($content), $this->link_info[$key]['header_size']));
+        $this->content[$key] = trim(substr($content, $this->link_info[$key]['header_size']));
         $this->header[$key] = ($this->curl_config[CURLOPT_HEADER] === FALSE) ? '' : trim(substr($content, 0, $this->link_info[$key]['header_size']));
     }
 

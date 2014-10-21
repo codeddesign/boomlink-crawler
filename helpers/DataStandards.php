@@ -2,6 +2,8 @@
 
 class DataStandards
 {
+    public static $default = 'n/a';
+
     /**
      * @param $url
      * @return mixed
@@ -10,7 +12,7 @@ class DataStandards
     {
         $url = trim($url);
 
-        // parse url won't work properly if 'http' is missing:
+        // parse_url() won't work properly if 'http' is missing:
         if (substr($url, 0, 4) !== 'http') {
             $url = 'http://' . $url;
         }
@@ -62,7 +64,7 @@ class DataStandards
      */
     public static function getDefaultLinksInfo()
     {
-        return '';
+        return self::$default;
     }
 
     /**
@@ -71,7 +73,7 @@ class DataStandards
      */
     public static function getDefaultNetworkRecord()
     {
-        $d = ''; // OR 'n/a' ?
+        $d = self::$default;
 
         return array(
             'server_ip' => $d,
@@ -95,5 +97,27 @@ class DataStandards
         }
 
         return $string;
+    }
+
+    /**
+     * @param $text
+     * @return string
+     */
+    public static function getBodyText($text)
+    {
+        /*return utf8_decode(trim($text))*/;
+        return trim($text);
+    }
+
+    /**
+     * @return array
+     */
+    public static function getDefaultMeta()
+    {
+        $d = self::$default;
+
+        return array(
+            'content' => $d,
+        );
     }
 }
