@@ -99,7 +99,7 @@ class Curl
     protected function initSingleCurl($url)
     {
         $con = curl_init();
-        curl_setopt($con, CURLOPT_URL, DataStandards::getCleanURL($url));
+        curl_setopt($con, CURLOPT_URL, Standards::getCleanURL($url));
         curl_setopt_array($con, $this->curl_config);
         return $con;
     }
@@ -205,7 +205,7 @@ class Curl
     public function getLinkInfo()
     {
         $info = array();
-        $default = DataStandards::getDefaultLinksInfo();
+        $default = Standards::getDefaultLinksInfo();
 
         $needed = array_flip(array(
             'url',

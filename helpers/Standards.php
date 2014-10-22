@@ -1,6 +1,6 @@
 <?php
 
-class DataStandards
+class Standards
 {
     public static $default = 'n/a';
 
@@ -53,7 +53,7 @@ class DataStandards
     {
         $url = trim($url);
         if (stripos($url, '#') !== false) {
-            $url = substr($url, 0, strrpos('#', $url));
+            $url = substr($url, 0, stripos('#', $url));
         }
 
         return $url;
@@ -119,5 +119,76 @@ class DataStandards
         return array(
             'content' => $d,
         );
+    }
+
+    /**
+     * @param array $array
+     * @return object
+     */
+    public static function arrayToObject(array $array = array())
+    {
+        return (object)$array;
+    }
+
+    /**
+     * @param $link
+     * @return bool
+     */
+    public static function linkIsOK($link)
+    {
+        $link = trim($link);
+        if (strlen($link) == 0) {
+            return false;
+        }
+
+        if (stripos($link, 'javascript') !== false) {
+            return false;
+        }
+
+        if ($link == '/') {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @param $mainLink
+     * @param $link
+     * @return string
+     */
+    public static function addMainLinkTo($mainLink, $link)
+    {
+        if ($link[0] == '/') {
+            return $mainLink . substr($link, 1);
+        }
+
+        if (substr($link, 0, 4) !== 'http') {
+            return $mainLink . $link;
+        }
+
+        return $link;
+    }
+
+    /**
+     * @param $relValue
+     * @return bool
+     */
+    public static function linkIsFollowable($relValue) {
+        $doNotTrack = array(
+            'nofollow',
+            'noindex',
+            'no-index',
+            'no-follow',
+        );
+
+
+        foreach($doNotTrack as $d_no => $p) {
+            if(stripos($relValue, $p) !== false) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

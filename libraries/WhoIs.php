@@ -15,11 +15,11 @@ class WhoIs
     function __construct($url)
     {
         // set domain:
-        $this->domain = DataStandards::getHost($url);
+        $this->domain = Standards::getHost($url);
 
         // set tld, ip:
-        $this->tld = DataStandards::getTLD($this->domain);
-        $this->ip = DataStandards::getIPByHost($this->domain);
+        $this->tld = Standards::getTLD($this->domain);
+        $this->ip = Standards::getIPByHost($this->domain);
 
         // 'who is' servers:
         $this->servers = array(
@@ -59,8 +59,8 @@ class WhoIs
         );
 
         // set default:
-        $this->_default = DataStandards::getDefaultNetworkRecord();
-        $this->needed = DataStandards::getDefaultNetworkRecord();
+        $this->_default = Standards::getDefaultNetworkRecord();
+        $this->needed = Standards::getDefaultNetworkRecord();
     }
 
     /**
@@ -118,7 +118,7 @@ class WhoIs
             }
         }
 
-        return DataStandards::getCleanDate($r);
+        return Standards::getCleanDate($r);
     }
 
     /**
