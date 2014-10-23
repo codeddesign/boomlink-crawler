@@ -3,11 +3,13 @@
 class BodyParse
 {
     protected $xPath, $xDoc, $xBody, $headings, $body, $parsedUrl;
+    public $collected;
 
     function __construct($parsedUrl, $body)
     {
         $this->body = $body;
         $this->parsedUrl = $parsedUrl;
+        $this->collected = array();
 
         // needed to avoid 'html' errors/warnings:
         libxml_use_internal_errors(true);
@@ -23,6 +25,26 @@ class BodyParse
 
         // needed to avoid 'html' errors/warnings:
         libxml_use_internal_errors(false);
+
+        //doer:
+        $this->collectAllData();
+    }
+
+    /**
+     * - RUNS ALL FUNCTIONS THAT GATHER DATA;
+     * - created this way in case extra filtering or cases check is/are required along the workflow;
+     * - commented lines are not extremely need. The methods might be called on need from the other ones;
+     */
+    public function collectAllData()
+    {
+        if (count($this->collected) == 0) {
+            $this->getPageTitle();
+            $this->getMetaData();
+            $this->getHeadingsCount();
+            // $this->getAllLinksData();
+            $this->getLinksOnly();
+            // $this->getCanonicalLINKS();
+        }
     }
 
     /**
@@ -73,6 +95,8 @@ class BodyParse
             $save[strtolower($tempTagName)] += $elements->length;
         }
 
+        $this->collected['h16_count'] = $save;
+
         return $save;
     }
 
@@ -114,7 +138,7 @@ class BodyParse
     }
 
     /**
-     * @return array
+     * @return string
      */
     public function getPageTitle()
     {
@@ -125,7 +149,10 @@ class BodyParse
             $node = $node->item(0);
         }
 
-        return array('title' => Standards::getBodyText($node->nodeValue));
+        $pageTitle = Standards::getBodyText($node->nodeValue);
+
+        $this->collected['pageTitle'] = $pageTitle;
+        return $pageTitle;
     }
 
     /**
@@ -133,19 +160,34 @@ class BodyParse
      */
     public function getMetaData()
     {
-        $nodes = $this->getElementsByTagName('META');
-        $needed = array(
-            'description' => Standards::getDefaultMeta('description'),
-        );
+        $elements = $this->getElementsByTagName('META');
+        $save = array();
+        foreach ($elements as $n_no => $node) {
+            $mergeTemp = array();
 
-        foreach ($nodes as $n_no => $node) {
-            $name = $node->getAttribute('name');
-            if (array_key_exists($name, $needed)) {
-                $needed[$name] = Standards::getBodyText($node->getAttribute('content'));
+            // get all attributes of the element:
+            $attributes = $this->getNodeAttributes($node->attributes);
+            if (count($attributes) == 1) {
+                // there's no need to lowercase the key name here:
+                $mergeTemp = $attributes;
+            } else {
+                $attributes = array_values($attributes);
+
+                for ($i = 0; $i < count($attributes); $i++) {
+                    if (isset($attributes[$i + 1])) {
+                        // lowercase is needed because the 1st value becomes a key
+                        $mergeTemp = array(strtolower($attributes[$i]) => $attributes[$i + 1]);
+                    }
+                }
+            }
+
+            if (count($mergeTemp) > 0) {
+                $save = array_merge($save, $mergeTemp);
             }
         }
 
-        return $needed;
+        $this->collected['metaData'] = $save;
+        return $save;
     }
 
     /**
@@ -209,7 +251,6 @@ class BodyParse
         return isset($attributes[$attribute]);
     }
 
-
     /**
      * @param array $link
      * @return bool
@@ -220,6 +261,8 @@ class BodyParse
             $tempHref = Standards::getCleanURL($link['attributes']['href']);
             if (Standards::linkIsOK($tempHref)) {
                 /* separate the data of interest: */
+
+                // make it an array:
                 $linkData['href'] = array_flip(array(Standards::addMainLinkTo($this->parsedUrl, $tempHref)));
 
                 // remove href from attributes:
@@ -234,12 +277,17 @@ class BodyParse
         return false;
     }
 
+    /**
+     * @param array $linkData
+     * @return array
+     */
     private function filterLinks(array $linkData)
     {
         $linksOnly = array();
         foreach ($linkData as $l_no => $data) {
             // 1. remove no follow/no index/..:
             if (isset($data['rel']) AND !Standards::linkIsFollowable($data['rel'])) {
+                $this->collected['linksUnfollowable'][] = $linkData[$l_no]; //<- here we save them
                 unset($linkData[$l_no]);
             }
 
@@ -277,7 +325,8 @@ class BodyParse
             $find = ($link[strlen($link) - 1] == '/') ? substr($link, 0, strlen($link) - 1) : $link . '/';
             if (array_key_exists($find, $linksOnly) AND !array_key_exists($link, $ignoredLinks)) {
                 $temp = $linkData[$linksOnly[$find]];
-                unset($temp['href']); // <- remove href from saved
+                unset($temp['href']); // <- remove href before saving
+
                 $ignoredLinksData[$l_no] = $temp;
                 $ignoredLinks[$find] = '';
 
@@ -286,7 +335,7 @@ class BodyParse
             }
         }
 
-        // 5. merge
+        // 4.c. merge ignoredLinksData saved in previous step:
         foreach ($ignoredLinksData as $l_no => $data) {
             $linkData[$l_no] = array_merge($linkData[$l_no], $data);
         }
@@ -326,44 +375,92 @@ class BodyParse
     /**
      * @return array
      */
-    protected function getAllLinksData()
+    public function getAllLinksData()
     {
+        $linksData = array();
         $elements = $this->regGetElementsByTagName('a');
-        $linkData = array();
 
-        # filtering 1:
+        # adapt link data:
         foreach ($elements as $t_no => $t) {
             if (($tempData = $this->adaptLinkData($t)) !== false) {
-                $linkData[] = $tempData;
+                $linksData[] = $tempData;
             }
         }
 
         // fallback case:
-        if (count($linkData) == 0) {
-            return $linkData;
+        if (count($linksData) == 0) {
+            return $linksData;
         }
 
-        // filtering #2
-        $linkData = $this->filterLinks($linkData);
+        // filtering:
+        $linksData = $this->filterLinks($linksData);
+        $this->collected['linksData'] = $linksData;
 
-        return $linkData;
+        return $linksData;
     }
 
-    public function getHrefsOnly()
+    /**
+     * It's not returning links that DON'T ALLOW FOLLOWING and also is NOT CONTAINING the CANONICAL ones.
+     * @return array
+     */
+    public function getLinksOnly()
     {
-        $allFilteredDataLinks = $this->getAllLinksData();
-        $hrefs = array();
+        if (!isset($this->collected['linksData'])) {
+            $this->getAllLinksData();
+        }
 
-        foreach($allFilteredDataLinks as $a_no => $a) {
-            if(isset($a['href'])) {
-                $hrefs[$a['href']] = '';
+        $links = array();
+        foreach ($this->collected['linksData'] as $a_no => $a) {
+            if (isset($a['href'])) {
+                $links[$a['href']] = '';
             }
         }
 
-        return $hrefs;
+        // remove canonical links from 'linksOnly':
+        if (!isset($this->collected['canonicalLinks'])) {
+            $this->getCanonicalLINKS();
+        }
+
+        foreach ($links as $link => $null) {
+            if (array_key_exists($link, $this->collected['canonicalLinks'])) {
+                unset($links[$link]);
+            }
+        }
+
+        // set:
+        $this->collected['linksOnly'] = $links;
+
+        return $links;
     }
 
-    public function test() {
-        print_r($this->getHrefsOnly());
+    /**
+     * @return array
+     */
+    public function getCanonicalLINKS()
+    {
+        $canonicalLinks = array();
+        $nodes = $this->regGetElementsByTagName('link');
+
+        foreach ($nodes as $n_no => $node) {
+            $relValue = strtolower(trim($node->getAttribute('rel')));
+
+            if (strtolower($relValue) == 'canonical') {
+                $href = strtolower(trim($node->getAttribute('href')));
+                if (strlen($href) > 0) {
+                    $canonicalLinks[$href] = '';
+                }
+            }
+        }
+
+        $this->collected['canonicalLinks'] = $canonicalLinks;
+
+        return $canonicalLinks;
+    }
+
+    public function viewAllData()
+    {
+        print_r(
+            $this->collected
+        );
     }
 }

@@ -110,18 +110,6 @@ class Standards
     }
 
     /**
-     * @return array
-     */
-    public static function getDefaultMeta()
-    {
-        $d = self::$default;
-
-        return array(
-            'content' => $d,
-        );
-    }
-
-    /**
      * @param array $array
      * @return object
      */
