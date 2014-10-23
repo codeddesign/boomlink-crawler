@@ -129,8 +129,15 @@ class Standards
             return false;
         }
 
-        if (stripos($link, 'javascript') !== false) {
-            return false;
+        $avoidLinks = array(
+            'javascript:',
+
+        );
+
+        foreach ($avoidLinks as $a_no => $avoid) {
+            if (stripos($link, $avoid) !== false) {
+                return false;
+            }
         }
 
         if ($link == '/') {
@@ -159,10 +166,11 @@ class Standards
     }
 
     /**
-     * @param $relValue
+     * @param $value
      * @return bool
      */
-    public static function linkIsFollowable($relValue) {
+    public static function isFollowable($value)
+    {
         $doNotTrack = array(
             'nofollow',
             'noindex',
@@ -170,9 +178,8 @@ class Standards
             'no-follow',
         );
 
-
-        foreach($doNotTrack as $d_no => $p) {
-            if(stripos($relValue, $p) !== false) {
+        foreach ($doNotTrack as $d_no => $p) {
+            if (stripos($value, $p) !== false) {
                 return false;
             }
         }

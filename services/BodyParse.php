@@ -25,9 +25,6 @@ class BodyParse
 
         // needed to avoid 'html' errors/warnings:
         libxml_use_internal_errors(false);
-
-        //doer:
-        $this->collectAllData();
     }
 
     /**
@@ -35,16 +32,28 @@ class BodyParse
      * - created this way in case extra filtering or cases check is/are required along the workflow;
      * - commented lines are not extremely need. The methods might be called on need from the other ones;
      */
-    public function collectAllData()
+    private function collectAllData()
     {
-        if (count($this->collected) == 0) {
-            $this->getPageTitle();
-            $this->getMetaData();
-            $this->getHeadingsCount();
-            // $this->getAllLinksData();
-            $this->getLinksOnly();
-            // $this->getCanonicalLINKS();
+        $this->getPageTitle();
+        //$this->getMetaData();
+        $this->getHeadingsCount();
+        // $this->getAllLinksData();
+        $this->getLinksOnly();
+        // $this->getCanonicalLINKS();
+    }
+
+    /**
+     * @return bool
+     */
+    public function isCrawlAllowed()
+    {
+        $meta = $this->getMetaData();
+        if (isset($meta['robots']) AND !Standards::isFollowable($meta['robots'])) {
+            return false;
         }
+
+        $this->collectAllData();
+        return true;
     }
 
     /**
@@ -95,7 +104,7 @@ class BodyParse
             $save[strtolower($tempTagName)] += $elements->length;
         }
 
-        $this->collected['h16_count'] = $save;
+        $this->collected['headersCount'] = $save;
 
         return $save;
     }
@@ -259,9 +268,9 @@ class BodyParse
     {
         if ($this->hasAttribute('href', $link['attributes'])) {
             $tempHref = Standards::getCleanURL($link['attributes']['href']);
-            if (Standards::linkIsOK($tempHref)) {
-                /* separate the data of interest: */
 
+            /* separate the data of interest: */
+            if (Standards::linkIsOK($tempHref)) {
                 // make it an array:
                 $linkData['href'] = array_flip(array(Standards::addMainLinkTo($this->parsedUrl, $tempHref)));
 
@@ -286,7 +295,7 @@ class BodyParse
         $linksOnly = array();
         foreach ($linkData as $l_no => $data) {
             // 1. remove no follow/no index/..:
-            if (isset($data['rel']) AND !Standards::linkIsFollowable($data['rel'])) {
+            if (isset($data['rel']) AND !Standards::isFollowable($data['rel'])) {
                 $this->collected['linksUnfollowable'][] = $linkData[$l_no]; //<- here we save them
                 unset($linkData[$l_no]);
             }

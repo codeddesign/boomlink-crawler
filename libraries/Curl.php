@@ -2,7 +2,7 @@
 
 class Curl
 {
-    protected $curl_config, $curl_sets, $content, $header, $links, $debug, $link_info;
+    private $curl_config, $curl_sets, $content, $header, $links, $debug, $link_info, $parsedCurlInfo;
 
     /**
      * @param array $opts
@@ -13,6 +13,7 @@ class Curl
         // sets:
         $this->debug = true;
         $this->links = $this->link_info = NULL;
+        $this->parsedCurlInfo = array();
 
         // needed: apply options
         $this->setCurlOptions($opts);
@@ -198,15 +199,10 @@ class Curl
         }
     }
 
-    /**
-     * @return array
-     * ^ more precisely it returns array that holds $needed
-     */
-    public function getLinkInfo()
+    private function parseCurlInfo()
     {
         $info = array();
         $default = Standards::getDefaultLinksInfo();
-
         $needed = array_flip(array(
             'url',
             'content_type',
@@ -237,9 +233,24 @@ class Curl
         }
 
         if (count($info) == 1) {
+            $this->parsedCurlInfo = $info[key($info)];
             return $info[key($info)];
         }
 
+        $this->parsedCurlInfo = $info;
         return $info;
+    }
+
+
+    /**
+     * @return array
+     */
+    public function getLinkCurlInfo()
+    {
+        if (count($this->parsedCurlInfo) == 0) {
+            $this->parseCurlInfo();
+        }
+
+        return $this->parsedCurlInfo;
     }
 }
