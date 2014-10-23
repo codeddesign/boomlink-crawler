@@ -2,13 +2,14 @@
 
 class BodyParse
 {
-    protected $xPath, $xDoc, $xBody, $headings, $body, $parsedUrl;
+    protected $xPath, $xDoc, $xBody, $headings, $body, $parsedUrl, $parsedDomain;
     public $collected;
 
     function __construct($parsedUrl, $body)
     {
         $this->body = $body;
         $this->parsedUrl = $parsedUrl;
+        $this->parsedDomain = Standards::getHost($parsedUrl);
         $this->collected = array();
 
         // needed to avoid 'html' errors/warnings:
@@ -205,13 +206,11 @@ class BodyParse
      */
     private function regGetAttributes($attributes)
     {
+        $ending = ';nIl';
         $attributes = trim($attributes);
-
         if (strlen($attributes) == 0) {
             return array();
         }
-
-        $ending = ';nIl';
 
         // special test:
         if (stripos($attributes, '7tv') !== false) {
@@ -290,26 +289,21 @@ class BodyParse
      * @param array $linkData
      * @return array
      */
-    private function filterLinks(array $linkData)
+    private function makeLinkDataUnique(array $linkData)
     {
+        if (count($linkData) == 0) {
+            return $linkData;
+        }
+
+        // Get them uniquely in a separate array:
         $linksOnly = array();
         foreach ($linkData as $l_no => $data) {
-            // 1. remove no follow/no index/..:
-            if (isset($data['rel']) AND !Standards::isFollowable($data['rel'])) {
-                $this->collected['linksUnfollowable'][] = $linkData[$l_no]; //<- here we save them
-                unset($linkData[$l_no]);
-            }
-
-            // 2. get them uniquely in a separate array:
             if (isset($linkData[$l_no])) {
                 $linksOnly[key($data['href'])][] = $l_no;
             }
-
-            // 3. remove attributes:
-            unset($linkData[$l_no]['attributes']);
         }
 
-        // 4.a. merge the ones which have more than 1 link_no to the first and unset the rest:
+        // Merge the ones which have more than 1 link_no to the first and unset the rest:
         foreach ($linksOnly as $link => $all_l_no) {
             if (count($all_l_no) > 1) {
                 for ($i = 1; $i < count($all_l_no); $i++) {
@@ -327,7 +321,7 @@ class BodyParse
             $linksOnly[$link] = $all_l_no[0];
         }
 
-        // 4.b. ignore+remove the ones which might have an extra '/' at the end;
+        // Ignore and remove the ones which might have an extra '/' at the end;
         $ignoredLinks = array();
         $ignoredLinksData = array();
         foreach ($linksOnly as $link => $l_no) {
@@ -344,13 +338,20 @@ class BodyParse
             }
         }
 
-        // 4.c. merge ignoredLinksData saved in previous step:
+        // Merge ignoredLinksData saved in previous step:
         foreach ($ignoredLinksData as $l_no => $data) {
             $linkData[$l_no] = array_merge($linkData[$l_no], $data);
         }
 
-        // 6. make it cleaner / readable:
-        $linkData = array_values($linkData);
+        return array_values($linkData);
+    }
+
+    /**
+     * @param array $linkData
+     * @return array
+     */
+    private function makeLinkDataCleaner(array $linkData)
+    {
         foreach ($linkData as $l_no => $data) {
             foreach ($data as $key => $temp) {
                 // make the array as a value
@@ -378,68 +379,77 @@ class BodyParse
             }
         }
 
-        return $linkData;
+        return array_values($linkData);
     }
 
     /**
-     * @return array
+     * Separates the links depending on: 'no-follow/no-index' / if 'external' / if 'internal'.
+     * @param array $linkData
+     */
+    private function separateLinkData(array $linkData)
+    {
+        foreach ($linkData as $l_no => $data) {
+            // remove attributes:
+            unset($linkData[$l_no]['attributes']);
+
+            if (isset($data['attributes']['rel']) AND !Standards::isFollowable($data['attributes']['rel'])) {
+                // set: no-follow/no-index links:
+                $type = 'no-follow';
+            } else if (Standards::getHost($data['href']) !== $this->parsedDomain) {
+                // set: external links:
+                $type = 'external';
+            } else {
+                // set: internal links:
+                $type = 'internal';
+            }
+
+            // save:
+            $this->collected['linkData'][$type][] = $linkData[$l_no];
+
+            # debug:
+            /*echo $data['href']. ' '.$type." (".Standards::getHost($data['href'])." ? ".$this->parsedDomain.")\n";*/
+        }
+
+        // fallback case:
+        $possibleTypes = array('no-follow', 'external', 'internal');
+        foreach ($possibleTypes as $p_no => $type) {
+            if (!isset($this->collected['linkData'][$type])) {
+                $this->collected['linkData'][$type] = array();
+            }
+        }
+    }
+
+    /**
+     * @return bool
      */
     public function getAllLinksData()
     {
-        $linksData = array();
         $elements = $this->regGetElementsByTagName('a');
 
         # adapt link data:
+        $linkData = array();
         foreach ($elements as $t_no => $t) {
             if (($tempData = $this->adaptLinkData($t)) !== false) {
-                $linksData[] = $tempData;
+                $linkData[] = $tempData;
             }
         }
 
         // fallback case:
-        if (count($linksData) == 0) {
-            return $linksData;
+        if (count($linkData) == 0) {
+            return false;
         }
 
-        // filtering:
-        $linksData = $this->filterLinks($linksData);
-        $this->collected['linksData'] = $linksData;
+        # filtering:
+        $linkData = $this->makeLinkDataUnique($linkData);
+        $linkData = $this->makeLinkDataCleaner($linkData);
 
-        return $linksData;
-    }
+        // save separate links data based on type:
+        $this->separateLinkData($linkData);
 
-    /**
-     * It's not returning links that DON'T ALLOW FOLLOWING and also is NOT CONTAINING the CANONICAL ones.
-     * @return array
-     */
-    public function getLinksOnly()
-    {
-        if (!isset($this->collected['linksData'])) {
-            $this->getAllLinksData();
-        }
+        // save all data too:
+        $this->collected['linkData']['complete'] = $linkData;
 
-        $links = array();
-        foreach ($this->collected['linksData'] as $a_no => $a) {
-            if (isset($a['href'])) {
-                $links[$a['href']] = '';
-            }
-        }
-
-        // remove canonical links from 'linksOnly':
-        if (!isset($this->collected['canonicalLinks'])) {
-            $this->getCanonicalLINKS();
-        }
-
-        foreach ($links as $link => $null) {
-            if (array_key_exists($link, $this->collected['canonicalLinks'])) {
-                unset($links[$link]);
-            }
-        }
-
-        // set:
-        $this->collected['linksOnly'] = $links;
-
-        return $links;
+        return true;
     }
 
     /**
@@ -464,6 +474,40 @@ class BodyParse
         $this->collected['canonicalLinks'] = $canonicalLinks;
 
         return $canonicalLinks;
+    }
+
+    /**
+     * It's not returning links that DON'T ALLOW FOLLOWING and also is NOT CONTAINING the CANONICAL ones.
+     * @return array
+     */
+    public function getLinksOnly()
+    {
+        if (!isset($this->collected['linkData']['internal'])) {
+            $this->getAllLinksData();
+        }
+
+        $links = array();
+        foreach ($this->collected['linkData']['internal'] as $a_no => $a) {
+            if (isset($a['href'])) {
+                $links[$a['href']] = '';
+            }
+        }
+
+        // remove canonical links from 'linksOnly':
+        if (!isset($this->collected['canonicalLinks'])) {
+            $this->getCanonicalLINKS();
+        }
+
+        foreach ($links as $link => $null) {
+            if (array_key_exists($link, $this->collected['canonicalLinks'])) {
+                unset($links[$link]);
+            }
+        }
+
+        // set:
+        $this->collected['crawlableLinks'] = $links;
+
+        return $links;
     }
 
     public function viewAllData()
