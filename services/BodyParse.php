@@ -214,13 +214,18 @@ class BodyParse
      * @param array $link
      * @return bool
      */
-    private function linkDataOK(array $link) {
+    private function adaptLinkData(array $link)
+    {
         if ($this->hasAttribute('href', $link['attributes'])) {
             $tempHref = Standards::getCleanURL($link['attributes']['href']);
             if (Standards::linkIsOK($tempHref)) {
-                $linkData['href'] = Standards::addMainLinkTo($this->parsedUrl, $tempHref);
-                $linkData['textContent'] = $link['textContent'];
+                /* separate the data of interest: */
+                $linkData['href'] = array_flip(array(Standards::addMainLinkTo($this->parsedUrl, $tempHref)));
+
+                // remove href from attributes:
                 unset($link['attributes']['href']);
+
+                $linkData['textContent'] = array_flip(array($link['textContent']));
                 $linkData['attributes'] = $link['attributes'];
                 return $linkData;
             }
@@ -229,35 +234,93 @@ class BodyParse
         return false;
     }
 
-    private function filterLinks(array $linkData) {
+    private function filterLinks(array $linkData)
+    {
         $linksOnly = array();
-        foreach($linkData as $l_no => $data) {
+        foreach ($linkData as $l_no => $data) {
             // 1. remove no follow/no index/..:
-            if(isset($data['rel']) AND !Standards::linkIsFollowable($data['rel'])) {
+            if (isset($data['rel']) AND !Standards::linkIsFollowable($data['rel'])) {
                 unset($linkData[$l_no]);
             }
 
             // 2. get them uniquely in a separate array:
-            if(isset($linkData[$l_no])) {
-                $linksOnly[$data['href']] = $l_no;
+            if (isset($linkData[$l_no])) {
+                $linksOnly[key($data['href'])][] = $l_no;
             }
+
+            // 3. remove attributes:
+            unset($linkData[$l_no]['attributes']);
         }
 
-        // 3. remove the ones which might have an extra '/' at the end;
-        $savedLinks = array();
-        foreach($linksOnly as $link => $l_no) {
-            $find = ($link[strlen($link)-1] == '/') ? substr($link, 0, strlen($link)-1) : $link.'/';
-            if(array_key_exists($find, $linksOnly) AND !array_key_exists($link, $savedLinks)) {
-                $saveDetails = $linkData[$linksOnly[$find]];
-                /*echo 'saved:'.$linksOnly[$find];
-                print_r($saveDetails);*/
+        // 4.a. merge the ones which have more than 1 link_no to the first and unset the rest:
+        foreach ($linksOnly as $link => $all_l_no) {
+            if (count($all_l_no) > 1) {
+                for ($i = 1; $i < count($all_l_no); $i++) {
+                    // remove href before merge:
+                    unset($linkData[$all_l_no[$i]]['href']);
+
+                    // merge to first:
+                    $linkData[$all_l_no[0]] = array_merge_recursive($linkData[$all_l_no[0]], $linkData[$all_l_no[$i]]);
+
+                    // remove completely:
+                    unset($linkData[$all_l_no[$i]]);
+                }
+            }
+
+            $linksOnly[$link] = $all_l_no[0];
+        }
+
+        // 4.b. ignore+remove the ones which might have an extra '/' at the end;
+        $ignoredLinks = array();
+        $ignoredLinksData = array();
+        foreach ($linksOnly as $link => $l_no) {
+            $find = ($link[strlen($link) - 1] == '/') ? substr($link, 0, strlen($link) - 1) : $link . '/';
+            if (array_key_exists($find, $linksOnly) AND !array_key_exists($link, $ignoredLinks)) {
+                $temp = $linkData[$linksOnly[$find]];
+                unset($temp['href']); // <- remove href from saved
+                $ignoredLinksData[$l_no] = $temp;
+                $ignoredLinks[$find] = '';
+
+                // remove from $linkData:
                 unset($linkData[$linksOnly[$find]]);
-                $savedLinks[$find] = '';
             }
         }
 
-        print_r($savedLinks);
-        return array_values($linkData);
+        // 5. merge
+        foreach ($ignoredLinksData as $l_no => $data) {
+            $linkData[$l_no] = array_merge($linkData[$l_no], $data);
+        }
+
+        // 6. make it cleaner / readable:
+        $linkData = array_values($linkData);
+        foreach ($linkData as $l_no => $data) {
+            foreach ($data as $key => $temp) {
+                // make the array as a value
+                if ($key == 'href') {
+                    $linkData[$l_no][$key] = key($temp);
+                }
+
+                // adapts to textContent:
+                if ($key == 'textContent') {
+                    foreach ($temp as $t_key => $t_data) {
+                        // remove extra array created due to array_merge_recursive in a previous step:
+                        if (is_array($t_data)) {
+                            $linkData[$l_no][$key][$t_key] = 0;
+                        }
+
+                        // save only the ones which got something:
+                        if (strlen(trim($t_key)) > 0) {
+                            $linkData[$l_no][$key][] = $t_key;
+                        }
+
+                        // remove old ones:
+                        unset($linkData[$l_no][$key][$t_key]);
+                    }
+                }
+            }
+        }
+
+        return $linkData;
     }
 
     /**
@@ -270,13 +333,13 @@ class BodyParse
 
         # filtering 1:
         foreach ($elements as $t_no => $t) {
-            if( ($tempData = $this->linkDataOK($t)) !== false) {
+            if (($tempData = $this->adaptLinkData($t)) !== false) {
                 $linkData[] = $tempData;
             }
         }
 
         // fallback case:
-        if(count($linkData) == 0) {
+        if (count($linkData) == 0) {
             return $linkData;
         }
 
@@ -286,19 +349,21 @@ class BodyParse
         return $linkData;
     }
 
-    public function test()
+    public function getHrefsOnly()
     {
-        print_r(
-            $this->getAllLinksData()
-        );
+        $allFilteredDataLinks = $this->getAllLinksData();
+        $hrefs = array();
+
+        foreach($allFilteredDataLinks as $a_no => $a) {
+            if(isset($a['href'])) {
+                $hrefs[$a['href']] = '';
+            }
+        }
+
+        return $hrefs;
     }
 
-    /**
-     * @return mixed
-     */
-    private function getLinksNoIndex()
-    {
-        /*$links = $this->getElementsByTagNameAndAttribute('a', 'rel');
-        return $links;*/
+    public function test() {
+        print_r($this->getHrefsOnly());
     }
 }
