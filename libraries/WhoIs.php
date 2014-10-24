@@ -208,6 +208,11 @@ class WhoIs
         return $data;
     }
 
+    /**
+     * @param $body
+     * @param null $key
+     * @return array
+     */
     protected function parse_response($body, $key = NULL)
     {
         $parsed = array();

@@ -31,6 +31,26 @@ class BodyParse
     }
 
     /**
+     * @return bool
+     */
+    public function isCrawlAllowed()
+    {
+        if (isset($this->collected['metaData'])) {
+            $meta = $this->collected['metaData'];
+        } else {
+            $meta = $this->getMetaData();
+        }
+
+        // ..
+        if (isset($meta['robots']) AND !Standards::isFollowable($meta['robots'])) {
+            return false;
+        }
+
+        $this->collectAllData();
+        return true;
+    }
+
+    /**
      * - RUNS ALL FUNCTIONS THAT GATHER DATA;
      * - created this way in case extra filtering or cases check is/are required along the workflow;
      * - commented lines are not extremely need. The methods might be called on need from the other ones;
@@ -38,25 +58,10 @@ class BodyParse
     private function collectAllData()
     {
         $this->getPageTitle();
-        //$this->getMetaData();
+        $this->getLanguage();
+        $this->getCharset();
         $this->getHeadingsCount();
-        // $this->getAllLinksData();
-        $this->getLinksOnly();
-        // $this->getCanonicalLINKS();
-    }
-
-    /**
-     * @return bool
-     */
-    public function isCrawlAllowed()
-    {
-        $meta = $this->getMetaData();
-        if (isset($meta['robots']) AND !Standards::isFollowable($meta['robots'])) {
-            return false;
-        }
-
-        $this->collectAllData();
-        return true;
+        $this->getAllLinksData();
     }
 
     /**
@@ -95,6 +100,11 @@ class BodyParse
      */
     public function getHeadingsCount()
     {
+        if (isset($this->collected['headersCount'])) {
+            return $this->collected['headersCount'];
+        }
+
+        // ..
         $save = array();
         for ($i = 1; $i <= 6; $i++) {
             $tempTagName = 'H' . $i;
@@ -135,7 +145,7 @@ class BodyParse
      * @param $tagName
      * @return DOMNode|DOMNodeList
      */
-    protected function getElementByTagName($tagName)
+    private function getElementByTagName($tagName)
     {
         return $this->getStuffByTagName($tagName, false);
     }
@@ -144,7 +154,7 @@ class BodyParse
      * @param $tagName
      * @return DOMNode|DOMNodeList
      */
-    protected function getElementsByTagName($tagName)
+    private function getElementsByTagName($tagName)
     {
         return $this->getStuffByTagName($tagName, true);
     }
@@ -154,6 +164,11 @@ class BodyParse
      */
     public function getPageTitle()
     {
+        if (isset($this->collected['pageTitle'])) {
+            return $this->collected['pageTitle'];
+        }
+
+        // ..
         $node = $this->getElementByTagName('TITLE');
 
         // fall-back case:
@@ -238,7 +253,7 @@ class BodyParse
      * @param $tagName
      * @return array
      */
-    protected function regGetElementsByTagName($tagName)
+    private function regGetElementsByTagName($tagName)
     {
         $elements = array();
         if (preg_match_all('#<' . $tagName . '(.*?)>(.*?)</' . $tagName . '>#is', $this->body, $matched)) {
@@ -396,6 +411,7 @@ class BodyParse
     /**
      * Separates the links depending on: 'no-follow/no-index' / if 'external' / if 'internal'.
      * @param array $linkData
+     * @return array
      */
     private function separateLinkData(array $linkData)
     {
@@ -428,6 +444,8 @@ class BodyParse
                 $this->collected['linkData'][$type] = array();
             }
         }
+
+        return $linkData;
     }
 
     /**
@@ -455,7 +473,7 @@ class BodyParse
         $linkData = $this->makeLinkDataCleaner($linkData);
 
         // save separate links data based on type:
-        $this->separateLinkData($linkData);
+        $linkData = $this->separateLinkData($linkData);
 
         // save all data too:
         $this->collected['linkData']['complete'] = $linkData;
@@ -468,6 +486,11 @@ class BodyParse
      */
     public function getCanonicalLINKS()
     {
+        if (isset($this->collected['canonicalLinks'])) {
+            return $this->collected['canonicalLinks'];
+        }
+
+        // ..
         $canonicalLinks = array();
         $nodes = $this->regGetElementsByTagName('link');
 
@@ -491,12 +514,13 @@ class BodyParse
      * It's not returning links that DON'T ALLOW FOLLOWING and also is NOT CONTAINING the CANONICAL ones.
      * @return array
      */
-    public function getLinksOnly()
+    public function getFilteredInternalLinksOnly()
     {
-        if (!isset($this->collected['linkData']['internal'])) {
+        if (!isset($this->collected['linkData'])) {
             $this->getAllLinksData();
         }
 
+        //..
         $links = array();
         foreach ($this->collected['linkData']['internal'] as $a_no => $a) {
             if (isset($a['href'])) {
@@ -519,6 +543,89 @@ class BodyParse
         $this->collected['crawlableLinks'] = $links;
 
         return $links;
+    }
+
+    public function getContentLanguage()
+    {
+
+    }
+
+    /**
+     * @return bool|string
+     */
+    public function getCharset()
+    {
+        if (isset($this->collected['charset'])) {
+            return $this->collected['charset'];
+        }
+
+        // ..
+        $charset = false;
+        if (!isset($this->collected['metaData'])) {
+            $this->getMetaData();
+        }
+
+        $metaData = $this->collected['metaData'];
+        if (isset($metaData['charset'])) {
+            $charset = $metaData['charset'];
+        }
+
+        if (!$charset AND isset($metaData['content-type'])) {
+            if (preg_match('/charset=(.*)/i', $metaData['content-type'], $matched)) {
+                $charset = $matched[1];
+            }
+        }
+
+        if ($charset !== FALSE) {
+            $charset = trim(strtolower($charset));
+        }
+
+        $this->collected['charset'] = $charset;
+        return $charset;
+    }
+
+    /**
+     * @return bool|string
+     */
+    public function getLanguage()
+    {
+        if (isset($this->collected['language'])) {
+            return $this->collected['language'];
+        }
+
+        // ..
+        $lang = false;
+        if (!isset($this->collected['metaData'])) {
+            $this->getMetaData();
+        }
+
+        $metaData = $this->collected['metaData'];
+        if (isset($metaData['content-language'])) {
+            $lang = $metaData['content-language'];
+        }
+
+        if (!$lang) {
+            // check the values from 'html' tag:
+            $element = $this->getElementByTagName('HTML');
+            if (property_exists($element, 'length')) {
+                $element = $element->item(0);
+            }
+
+            $attributes = $this->getNodeAttributes($element->attributes);
+
+            $possibleNames = array('lang', 'xml:lang');
+            foreach ($possibleNames as $p_no => $p_name)
+                if (!$lang AND isset($attributes[$p_name])) {
+                    $lang = $attributes[$p_name];
+                }
+        }
+
+        if ($lang !== FALSE) {
+            $lang = trim(strtolower($lang));
+        }
+
+        $this->collected['language'] = $lang;
+        return $lang;
     }
 
     public function viewAllData()
