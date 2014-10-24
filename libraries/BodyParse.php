@@ -2,7 +2,7 @@
 
 class BodyParse
 {
-    protected $xPath, $xDoc, $xBody, $headings, $body, $parsedUrl, $parsedDomain;
+    protected $xPath, $xDoc, $xBody, $headings, $body, $parsedUrl, $parsedDomain, $mainURL;
     public $collected;
 
     function __construct($parsedUrl, $body)
@@ -10,6 +10,8 @@ class BodyParse
         $this->body = $body;
         $this->parsedUrl = $parsedUrl;
         $this->parsedDomain = Standards::getHost($parsedUrl);
+        $this->mainURL = Standards::getMainURL($parsedUrl);
+
         $this->collected = array();
 
         // needed to avoid 'html' errors/warnings:
@@ -270,8 +272,17 @@ class BodyParse
 
             /* separate the data of interest: */
             if (Standards::linkIsOK($tempHref)) {
-                // make it an array:
-                $linkData['href'] = array_flip(array(Standards::addMainLinkTo($this->parsedUrl, $tempHref)));
+                $linkData['href'] = array_flip(
+                    array(
+                        Standards::makeAbsoluteLink(array(
+                            'main' => $this->mainURL,
+                            'parsed' => $this->parsedUrl,
+                        ), $tempHref)
+                    )
+                );
+
+                #debug:
+                /* echo $this->parsedUrl . ' + ' . $tempHref . ' => ' . key($linkData['href']) . "\n"; */
 
                 // remove href from attributes:
                 unset($link['attributes']['href']);

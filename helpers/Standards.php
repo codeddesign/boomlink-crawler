@@ -147,22 +147,40 @@ class Standards
         return true;
     }
 
+
     /**
-     * @param $mainLink
-     * @param $link
+     * @param array $link
+     * @param $part
      * @return string
      */
-    public static function addMainLinkTo($mainLink, $link)
+    public static function makeAbsoluteLink(array $link = array('main' => '', 'parsed' => ''), $part)
     {
-        if ($link[0] == '/') {
-            return $mainLink . substr($link, 1);
+        $out = $part;
+        if (substr($part, 0, 4) !== 'http') {
+            if ($part[0] == '/') {
+                $out = $link['main'] . $part;
+            } else {
+                if ($link['parsed'][strlen($link['parsed']) - 1] == '/') {
+                    $middle = '';
+                } else {
+                    $middle = '/';
+                }
+                $out = $link['parsed'] . $middle . $part;
+            }
         }
 
-        if (substr($link, 0, 4) !== 'http') {
-            return $mainLink . $link;
-        }
+        return $out;
+    }
 
-        return $link;
+    /**
+     * @param $parsedLink
+     * @return string
+     */
+    public static function getMainURL($parsedLink)
+    {
+        $host = self::getHost($parsedLink);
+
+        return substr($parsedLink, 0, (strpos($parsedLink, $host) + strlen($host)));
     }
 
     /**
