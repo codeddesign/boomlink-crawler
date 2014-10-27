@@ -6,14 +6,25 @@
  * - do more tests, remove dubbing code
  * */
 
-class WhoIs
+class WhoIs extends Service
 {
-    CONST PORT = 43, TIMEOUT = 5;
-    protected $timeout, $domain, $tld, $ip, $whois_server, $needed, $servers, $special_whois, $errNo, $errMsg, $registration_keys;
-    private $_default;
+    CONST PORT = 43, TIMEOUT = 5, DEBUG = true;
+    private $domain, $tld, $ip, $whois_server, $servers, $special_whois, $errNo, $errMsg, $registration_keys, $_default, $_domain_id;
 
-    function __construct($url)
+    /**
+     * @param $arguments
+     */
+    public function makeSets($arguments)
     {
+        $url = $arguments;
+        $domain_id = 0;
+
+        // fallback case:
+        if (is_array($arguments)) {
+            $url = $arguments['url'];
+            $domain_id = $arguments['domain_id'];
+        }
+
         // set domain:
         $this->domain = Standards::getHost($url);
 
@@ -60,7 +71,13 @@ class WhoIs
 
         // set default:
         $this->_default = Standards::getDefaultNetworkRecord();
-        $this->needed = Standards::getDefaultNetworkRecord();
+        $this->dataCollected = Standards::getDefaultNetworkRecord();
+
+        // start collecting data:
+        $this->dataCollected = array(
+            'domain_id' => $domain_id,
+            'domain' => $this->domain,
+        );
     }
 
     /**
@@ -70,19 +87,19 @@ class WhoIs
     {
         /* set 'whois' server: */
         $resp = $this->set_whois_server();
-        print_r($resp);
+        //$this->debug($resp);
 
         /* set ip: */
-        $this->needed['server_ip'] = $this->ip;
+        $this->dataCollected['server_ip'] = $this->ip;
 
         /* get 'created/registration date': */
         $resp = $this->get_info_domain();
-        $this->needed['registration_date'] = $this->determineRegistrationDate($resp);
-        print_r($resp);
+        $this->dataCollected['registration_date'] = $this->determineRegistrationDate($resp);
+        //$this->debug($resp);
 
         /* get ip, server location, hosting company: */
         $resp = $this->get_info_network();
-        //print_r($resp);
+        //$this->debug($resp);
 
         // special handle for Europe:
         $country = isset($resp['country']) ? $resp['country'] : $this->_default['country'];
@@ -90,16 +107,8 @@ class WhoIs
             $country = 'EU';
         }
 
-        $this->needed['server_location'] = $country;
-        $this->needed['hosting_company'] = isset($resp['orgname']) ? $resp['orgname'] : $resp['netname'];
-    }
-
-    /**
-     * @return array
-     */
-    public function getNeededInfo()
-    {
-        return $this->needed;
+        $this->dataCollected['server_location'] = $country;
+        $this->dataCollected['hosting_company'] = isset($resp['orgname']) ? $resp['orgname'] : $resp['netname'];
     }
 
     /**
@@ -129,7 +138,7 @@ class WhoIs
     {
         $parsed = $this->parse_response($this->socket_request($this->servers['whois'], $this->tld . '.'));
 
-        // get needed data only:
+        // get dataCollected data only:
         if (isset($parsed['whois'])) {
             $this->whois_server = $parsed['whois'];
         } else {
@@ -184,17 +193,16 @@ class WhoIs
     protected function get_info_network()
     {
         if ($this->ip == $this->domain) {
-            return 'Failed to get ip.';
+            $this->debug('Failed to get ip [' . $this->ip . '=?' . $this->domain . ']', static::DO_EXIT);
         }
 
         $found = FALSE;
-        $data = 'Failed to get network info.';
         foreach ($this->servers['network'] as $name => $server) {
             // continue to do requests only if not yet found:
             if (!$found) {
                 $body = $this->socket_request($server, $this->ip);
                 $parsed = $this->parse_response($body);
-
+                print_r($parsed);
                 if (isset($parsed['netname'])) {
                     $temp_value = strtolower($parsed['netname']);
                     if (stripos($temp_value, "ripe") === false AND stripos($temp_value, "arin") === false) {
@@ -203,6 +211,16 @@ class WhoIs
                     }
                 }
             }
+        }
+
+        exit();
+        if (!$found) {
+            $data = array();
+            if (!isset($body)) {
+                $body = 'unknown';
+            }
+
+            $this->debug('Failed to get nework info from:' . "\n" . $body, static::DO_EXIT);
         }
 
         return $data;
@@ -217,10 +235,10 @@ class WhoIs
     {
         $parsed = array();
 
-        if (preg_match_all("/(.*?):(.*?)\n/", $body, $matched)) {
+        if (preg_match_all(" / (.*?):(.*?)\n / ", $body, $matched)) {
             foreach ($matched[1] as $key_no => $name) {
                 $name = trim(strtolower($name));
-                $name = str_replace("-", "", $name);
+                $name = str_replace(" - ", "", $name);
                 $name = str_replace(" ", "_", $name);
 
                 if (strpos($name, "#") === false and strpos($name, "%") === false) {
