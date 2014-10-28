@@ -117,9 +117,6 @@ class ExternalData extends Service
                         $res = "not-found";
                     }
 
-                    if ($res == 'not-found') {
-                        echo $content;
-                    }
                     $this->dataCollected[$key] = $res;
                     break;
                 case 'bing_indexed':

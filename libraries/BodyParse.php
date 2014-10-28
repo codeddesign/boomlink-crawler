@@ -5,10 +5,11 @@ class BodyParse
     protected $xPath, $xDoc, $xBody, $headings, $body, $parsedUrl, $parsedDomain, $mainURL;
     public $collected;
 
-    function __construct($parsedUrl, $body)
+    function __construct($parsedUrl, $body, $header)
     {
-        $this->body = $body;
         $this->parsedUrl = $parsedUrl;
+        $this->body = $body;
+        $this->header = $header;
         $this->parsedDomain = Standards::getHost($parsedUrl);
         $this->mainURL = Standards::getMainURL($parsedUrl);
 
@@ -57,11 +58,43 @@ class BodyParse
      */
     private function collectAllData()
     {
+        $this->getParsedHeader();
         $this->getPageTitle();
         $this->getLanguage();
         $this->getCharset();
         $this->getHeadingsCount();
         $this->getAllLinksData();
+    }
+
+    /**
+     * @return array
+     */
+    public function getParsedHeader()
+    {
+        if (isset($this->collected['header'])) {
+            return $this->collected['header'];
+        }
+
+        $parsed = array();
+        $lines = explode("\n", $this->header);
+        foreach ($lines as $l_num => $line) {
+            // if empty line occurred means we got multi headers; so we reset $parsed, to get the next one
+            if (!trim($line)) {
+                $parsed = array();
+            }
+
+            if (preg_match('#(.*?):(.*)#i', $line, $matched)) {
+                $key = strtolower(trim($matched[1]));
+                $val = trim($matched[2]);
+
+                if (strlen($val) > 0) {
+                    $parsed[$key] = $val;
+                }
+            }
+        }
+
+        $this->collected['header'] = $parsed;
+        return $parsed;
     }
 
     /**
@@ -100,8 +133,8 @@ class BodyParse
      */
     public function getHeadingsCount()
     {
-        if (isset($this->collected['headersCount'])) {
-            return $this->collected['headersCount'];
+        if (isset($this->collected['headingsCount'])) {
+            return $this->collected['headingsCount'];
         }
 
         // ..
@@ -117,7 +150,7 @@ class BodyParse
             $save[strtolower($tempTagName)] += $elements->length;
         }
 
-        $this->collected['headersCount'] = $save;
+        $this->collected['headingsCount'] = $save;
 
         return $save;
     }
@@ -545,11 +578,6 @@ class BodyParse
         return $links;
     }
 
-    public function getContentLanguage()
-    {
-
-    }
-
     /**
      * @return bool|string
      */
@@ -570,17 +598,36 @@ class BodyParse
             $charset = $metaData['charset'];
         }
 
+        // fallback: parse meta data with content-type:
         if (!$charset AND isset($metaData['content-type'])) {
             if (preg_match('/charset=(.*)/i', $metaData['content-type'], $matched)) {
-                $charset = $matched[1];
+                if (strlen(trim($matched[1])) > 0) {
+                    $charset = $matched[1];
+                }
             }
         }
 
-        if ($charset !== FALSE) {
-            $charset = trim(strtolower($charset));
+        // fallback: try to get it from response header
+        if (!$charset) {
+            if (!isset($this->collected['header'])) {
+                $this->getParsedHeader();
+            }
+
+            if (isset($this->collected['header']['content-type'])) {
+                if (preg_match('/charset=(.*)/i', $this->collected['header']['content-type'], $matched)) {
+                    if (strlen(trim($matched[1])) > 0) {
+                        $charset = $matched[1];
+                    }
+                }
+            }
         }
 
-        $this->collected['charset'] = $charset;
+        // fallback: apply default
+        if (!$charset) {
+            $charset = Standards::$default;
+        }
+
+        $this->collected['charset'] = trim(strtolower($charset));
         return $charset;
     }
 
@@ -604,8 +651,8 @@ class BodyParse
             $lang = $metaData['content-language'];
         }
 
+        // fallback: check the values from 'html' tag
         if (!$lang) {
-            // check the values from 'html' tag:
             $element = $this->getElementByTagName('HTML');
             if (property_exists($element, 'length')) {
                 $element = $element->item(0);
@@ -620,11 +667,23 @@ class BodyParse
                 }
         }
 
-        if ($lang !== FALSE) {
-            $lang = trim(strtolower($lang));
+        // fallback: try to get it from response header
+        if (!$lang) {
+            if (!isset($this->collected['header'])) {
+                $this->getParsedHeader();
+            }
+
+            if (isset($this->collected['header']['content-language'])) {
+                $lang = $this->collected['header']['content-language'];
+            }
         }
 
-        $this->collected['language'] = $lang;
+        // fallback: apply default:
+        if (!$lang) {
+            $lang = Standards::$default;
+        }
+
+        $this->collected['language'] = trim(strtolower($lang));
         return $lang;
     }
 

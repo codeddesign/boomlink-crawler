@@ -19,14 +19,12 @@ class ProjectListener extends Service
 //                $this->runService('RobotsFile', array('url' => 'http://www.prosieben.de', 'domain_id' => '333'));
 //                $this->runService('RobotsFile', array('url' => 'http://www.codeddesign.org', 'domain_id' => '303'));
 
-                # get Social:
-                $this->runService('ExternalData', array('url' => 'http://www.sat1gold.de/tv/', 'domain_id' => '1', 'link_id' => '123'));
-                $this->runService('ExternalData', array('url' => 'http://www.codeddesign.org', 'domain_id' => '2', 'link_id' => '124'));
-                $this->runService('ExternalData', array('url' => 'http://www.protv.ro', 'domain_id' => '3', 'link_id' => '125'));
-                $this->runService('ExternalData', array('url' => 'http://www.trafic.ro', 'domain_id' => '4', 'link_id' => '126'));
-                $this->runService('ExternalData', array('url' => 'http://www.sat1.de', 'domain_id' => '5', 'link_id' => '127'));
-
-                # get GooglePageRank:
+                # get External data (google&bing indexed, social data (fb, tweeter, google+), google rank):
+//                $this->runService('ExternalData', array('url' => 'http://www.sat1gold.de/tv/', 'domain_id' => '1', 'link_id' => '123'));
+//                $this->runService('ExternalData', array('url' => 'http://www.codeddesign.org', 'domain_id' => '2', 'link_id' => '124'));
+//                $this->runService('ExternalData', array('url' => 'http://www.protv.ro', 'domain_id' => '3', 'link_id' => '125'));
+//                $this->runService('ExternalData', array('url' => 'http://www.trafic.ro', 'domain_id' => '4', 'link_id' => '126'));
+//                $this->runService('ExternalData', array('url' => 'http://www.sat1.de', 'domain_id' => '5', 'link_id' => '127'));
 
                 # wait for 'waitable' services:
                 $this->waitForFinish();
@@ -52,12 +50,13 @@ class ProjectListener extends Service
     }
 
     /**
+     * @param int $hours
      * @return bool
      */
-    private function about24HoursPassed()
+    private function hoursPassed($hours = 6)
     {
         $currentTime = time();
-        $_24h = 60 * 60 * 24;
+        $_24h = 60 * 60 * $hours;
 
         $result = ($this->startTime + $_24h) > $currentTime;
         if ($result) {
