@@ -1,36 +1,31 @@
 <?php
 
-class Robots
+class Robots extends Service
 {
-    protected $curl, $link, $linkRobots, $userAgent;
+    private $curl, $link, $linkRobots, $userAgent;
 
     /**
-     * @param $link
-     * @param $userAgent
+     * @param array $arguments
      */
-    function __construct($link, $userAgent)
+    public function makeSets(array $arguments = array('url' => '', 'crawlerAgent' => ''))
     {
-        if (substr($link, 0, 4) !== 'http') {
-            echo 'Invalid link: missing \'scheme\' (http|https). This should never happen.' . "\n";
-            return false;
-        }
 
-        // sets:
-        $this->link = $link;
+        $this->link = $arguments['url'];
+        $this->userAgent = $arguments['crawlerAgent'];
         $this->linkRobots = $this->getRobotsLink();
-        $this->userAgent = $userAgent;
+        if (substr($this->link, 0, 4) !== 'http') {
+            $this->debug('Invalid link: missing \'scheme\' (http|https). This should never happen.' . "\n", static::DO_EXIT);
+        }
 
         // init curl:
         $this->curl = new Curl();
         $this->curl->addLinks($this->linkRobots);
-
-        return true;
     }
 
     /**
      * @return string
      */
-    protected function getRobotsLink()
+    private function getRobotsLink()
     {
         $parts = parse_url($this->link);
 
@@ -41,7 +36,7 @@ class Robots
      * @return array
      * ^ more precisely it returns allowed AND not-allowed paths applied to current $userAgent OR to all *
      */
-    protected function parseRobotsFile()
+    private function parseRobotsFile()
     {
         $lines = explode("\n", $this->curl->getBodyOnly());
         foreach ($lines as $l_num => $line) {
@@ -61,7 +56,7 @@ class Robots
     /**
      * @return array|bool
      */
-    public function getRules()
+    private function getRules()
     {
         // run curl:
         $this->curl->run();
