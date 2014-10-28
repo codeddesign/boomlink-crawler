@@ -38,7 +38,7 @@ class RobotsFile extends Service
      */
     private function getRobotsLink()
     {
-        if (strlen($this->link) == 0 OR substr($this->link, 0, 4) !== 'http') {
+        if (strlen($this->link) == 0 OR !Standards::linkHasScheme($this->link)) {
             # This should never happen:
             $this->debug(__CLASS__ . ': Invalid link: missing \'scheme\' (http|https).' . "\n", static::DO_EXIT);
         }

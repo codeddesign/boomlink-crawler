@@ -5,6 +5,14 @@ class Standards
     public static $default = 'n/a';
 
     /**
+     * @param $link
+     * @return bool
+     */
+    public static function linkHasScheme($link) {
+        return (strtolower(substr($link, 0, 4)) === 'http');
+    }
+
+    /**
      * @param $url
      * @return mixed
      */
@@ -13,7 +21,7 @@ class Standards
         $url = trim($url);
 
         // parse_url() won't work properly if 'http' is missing:
-        if (substr($url, 0, 4) !== 'http') {
+        if(!self::linkHasScheme($url)) {
             $url = 'http://' . $url;
         }
 
@@ -156,7 +164,7 @@ class Standards
     public static function makeAbsoluteLink(array $link = array('main' => '', 'parsed' => ''), $part)
     {
         $out = $part;
-        if (substr($part, 0, 4) !== 'http') {
+        if(!self::linkHasScheme($link)) {
             if ($part[0] == '/') {
                 $out = $link['main'] . $part;
             } else {

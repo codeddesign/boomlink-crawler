@@ -11,16 +11,22 @@ class ProjectListener extends Service
         while ($i++ < 5) {
             /* if there are new projects: */
             if ($newOne) {
-                # create NEW sub-process to get whois data:
-                //$this->runService('WhoIs', array('url' => 'codeddesign.org', 'domain_id' => '123'));
-                //$this->runService('whois', array('url' => 'prosieben.de', 'domain_id' => '1234'));
+                # get WhoIs:
+//                $this->runService('WhoIs', array('url' => 'codeddesign.org', 'domain_id' => '123'));
+//                $this->runService('whois', array('url' => 'prosieben.de', 'domain_id' => '1234'));
 
-                # get Robots:
-                //$this->runService('RobotsFile', array('url' => 'http://www.prosieben.de', 'domain_id' => '333'));
-                //$this->runService('RobotsFile', array('url' => 'http://www.codeddesign.org', 'domain_id' => '303'));
+                # get RobotsFile:
+//                $this->runService('RobotsFile', array('url' => 'http://www.prosieben.de', 'domain_id' => '333'));
+//                $this->runService('RobotsFile', array('url' => 'http://www.codeddesign.org', 'domain_id' => '303'));
 
-                # create NEW sub-process to start crawling:
-                // ..
+                # get Social:
+//                $this->runService('Social', array('url' => 'http://www.prosieben.de', 'domain_id' => '303', 'link_id' => '828'));
+//                $this->runService('Social', array('url' => 'http://www.codeddesign.org', 'domain_id' => '303', 'link_id' => '828'));
+//                $this->runService('Social', array('url' => 'http://www.protv.ro', 'domain_id' => '303', 'link_id' => '828'));
+//                $this->runService('Social', array('url' => 'http://www.trafic.ro', 'domain_id' => '303', 'link_id' => '828'));
+//                $this->runService('Social', array('url' => 'http://www.sat1.de', 'domain_id' => '303', 'link_id' => '828'));
+
+                # get GooglePageRank:
 
                 # wait for 'waitable' services:
                 $this->waitForFinish();

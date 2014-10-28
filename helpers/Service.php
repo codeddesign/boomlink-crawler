@@ -24,7 +24,7 @@ class Service
      */
     public function getPID()
     {
-        if (!function_exists('posix_getpid()')) {
+        if (!function_exists('posix_getpid')) {
             $this->debug('posix_getpid(): does not exist.');
             return false;
         }
