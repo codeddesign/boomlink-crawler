@@ -121,6 +121,7 @@ class Curl
     {
         // run:
         $content = curl_exec($con = $this->initSingleCurl($url));
+        // var_dump(curl_error($con));
 
         // save some data first:
         $this->setLinkInfo($con);
@@ -156,7 +157,9 @@ class Curl
         foreach ($con as $u_key => $c) {
             // save some data first:
             $this->setLinkInfo($con[$u_key], $u_key);
-            $this->setBodyParts(curl_multi_getcontent($con[$u_key]), $u_key);
+            $temp_body = curl_multi_getcontent($con[$u_key]);
+            $this->setBodyParts($temp_body, $u_key);
+            //var_dump(curl_error($con[$u_key]));
 
             curl_multi_remove_handle($mh, $con[$u_key]);
         }
@@ -181,7 +184,8 @@ class Curl
     public function getHeaderOnly()
     {
         if (count($this->header) == 1) {
-            return $this->header[0];
+            $temp = array_values($this->header);
+            return $temp[0];
         } else {
             return $this->header;
         }
@@ -193,7 +197,8 @@ class Curl
     public function getBodyOnly()
     {
         if (count($this->content) == 1) {
-            return $this->content[0];
+            $temp = array_values($this->content);
+            return $temp[0];
         } else {
             return $this->content;
         }

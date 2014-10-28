@@ -139,7 +139,7 @@ class Service
         }
 
         if (!$found) {
-            $this->debug(__METHOD__ . ': service \'' . $className . '\' not found.', static::DO_EXIT);
+            $this->debug(__METHOD__ . ': service \'' . $className . '\' not \'available\'.', static::DO_EXIT);
         }
     }
 

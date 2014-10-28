@@ -1,46 +1,20 @@
 <?php
 
-class GooglePageRank
+class GooglePR
 {
-    protected $link, $curl_opts;
-
-    function __construct($link, $curl_opts)
-    {
-        $this->link = $link;
-        $this->curl_opts = array(
-            'header' => false,
-            // todo: add proxy;
-        );
-    }
-
     /**
      * @return string
      */
-    private function getRank()
+    public static function getURL($url)
     {
-        $url = 'http://toolbarqueries.google.com/tbr?client=navclient-auto&ch=' . $this->CheckHash($this->HashURL($this->link)) . '&features=Rank&q=info:' . $this->link . '&num=100&filter=0';
-
-        //get content:
-        $o = new Curl($this->curl_opts);
-        $o->run($url);
-        $body = $o->getBodyOnly();
-
-        //check content:
-        $pos = strpos($body, 'Rank_');
-        if ($pos === false) {
-            $pageRank = '0';
-        } else {
-            $pageRank = substr($body, $pos + 9);
-        }
-
-        return trim($pageRank);
+        return 'http://toolbarqueries.google.com/tbr?client=navclient-auto&ch=' . self::CheckHash(self::HashURL($url)) . '&features=Rank&q=info:' . $url . '&num=100&filter=0';
     }
 
     /**
      * @param $hashNum
      * @return string
      */
-    private function CheckHash($hashNum)
+    private static function CheckHash($hashNum)
     {
         $CheckByte = 0;
         $Flag = 0;
@@ -76,10 +50,10 @@ class GooglePageRank
      * @param $String
      * @return int
      */
-    private function HashURL($String)
+    private static function HashURL($String)
     {
-        $Check1 = $this->StrToNum($String, 0x1505, 0x21);
-        $Check2 = $this->StrToNum($String, 0, 0x1003F);
+        $Check1 = self::StrToNum($String, 0x1505, 0x21);
+        $Check2 = self::StrToNum($String, 0, 0x1003F);
 
         $Check1 >>= 2;
         $Check1 = (($Check1 >> 4) & 0x3FFFFC0) | ($Check1 & 0x3F);
@@ -98,7 +72,7 @@ class GooglePageRank
      * @param $Magic
      * @return int
      */
-    private function StrToNum($Str, $Check, $Magic)
+    private static function StrToNum($Str, $Check, $Magic)
     {
         $Int32Unit = 4294967296; // 2^32
 

@@ -6,7 +6,9 @@ function __autoload($className)
 {
     $dirs = array(
         'helpers',
+        'libraries',
         'services',
+
     );
 
     foreach ($dirs as $d_no => $dir) {

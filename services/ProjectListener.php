@@ -20,11 +20,11 @@ class ProjectListener extends Service
 //                $this->runService('RobotsFile', array('url' => 'http://www.codeddesign.org', 'domain_id' => '303'));
 
                 # get Social:
-//                $this->runService('Social', array('url' => 'http://www.prosieben.de', 'domain_id' => '303', 'link_id' => '828'));
-//                $this->runService('Social', array('url' => 'http://www.codeddesign.org', 'domain_id' => '303', 'link_id' => '828'));
-//                $this->runService('Social', array('url' => 'http://www.protv.ro', 'domain_id' => '303', 'link_id' => '828'));
-//                $this->runService('Social', array('url' => 'http://www.trafic.ro', 'domain_id' => '303', 'link_id' => '828'));
-//                $this->runService('Social', array('url' => 'http://www.sat1.de', 'domain_id' => '303', 'link_id' => '828'));
+                $this->runService('ExternalData', array('url' => 'http://www.sat1gold.de/tv/', 'domain_id' => '1', 'link_id' => '123'));
+                $this->runService('ExternalData', array('url' => 'http://www.codeddesign.org', 'domain_id' => '2', 'link_id' => '124'));
+                $this->runService('ExternalData', array('url' => 'http://www.protv.ro', 'domain_id' => '3', 'link_id' => '125'));
+                $this->runService('ExternalData', array('url' => 'http://www.trafic.ro', 'domain_id' => '4', 'link_id' => '126'));
+                $this->runService('ExternalData', array('url' => 'http://www.sat1.de', 'domain_id' => '5', 'link_id' => '127'));
 
                 # get GooglePageRank:
 
