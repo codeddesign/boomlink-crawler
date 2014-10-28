@@ -8,7 +8,8 @@ class Standards
      * @param $link
      * @return bool
      */
-    public static function linkHasScheme($link) {
+    public static function linkHasScheme($link)
+    {
         return (strtolower(substr($link, 0, 4)) === 'http');
     }
 
@@ -21,7 +22,7 @@ class Standards
         $url = trim($url);
 
         // parse_url() won't work properly if 'http' is missing:
-        if(!self::linkHasScheme($url)) {
+        if (!self::linkHasScheme($url)) {
             $url = 'http://' . $url;
         }
 
@@ -98,9 +99,9 @@ class Standards
     public static function getCleanDate($string)
     {
         $string = trim($string);
-
-        if (strpos($string, 'T') !== false) {
-            $parts = explode('T', $string);
+        if (preg_match('/([\d]T[\d])/', $string, $matched) !== false) {
+            $string = str_replace($matched[1][0] . 'T', $matched[1][0] . ' ', $string);
+            $parts = explode(' ', $string);
             return $parts[0];
         }
 
@@ -164,7 +165,7 @@ class Standards
     public static function makeAbsoluteLink(array $link = array('main' => '', 'parsed' => ''), $part)
     {
         $out = $part;
-        if(!self::linkHasScheme($link)) {
+        if (!self::linkHasScheme($part)) {
             if ($part[0] == '/') {
                 $out = $link['main'] . $part;
             } else {

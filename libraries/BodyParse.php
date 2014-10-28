@@ -1,10 +1,16 @@
 <?php
 
+#todo - strip <script> ... </script>
 class BodyParse
 {
     protected $xPath, $xDoc, $xBody, $headings, $body, $parsedUrl, $parsedDomain, $mainURL;
     public $collected;
 
+    /**
+     * @param $parsedUrl ( !Requires scheme -> http:// | https://]
+     * @param $body
+     * @param $header
+     */
     function __construct($parsedUrl, $body, $header)
     {
         $this->parsedUrl = $parsedUrl;
@@ -59,11 +65,32 @@ class BodyParse
     private function collectAllData()
     {
         $this->getParsedHeader();
+        $this->getServerConfig();
         $this->getPageTitle();
         $this->getLanguage();
         $this->getCharset();
         $this->getHeadingsCount();
         $this->getAllLinksData();
+    }
+
+    public function getServerConfig()
+    {
+        if (isset($this->collected['serverConfig'])) {
+            return $this->collected['serverConfig'];
+        }
+
+        if (!isset($this->collected['header'])) {
+            $this->getParsedHeader();
+        }
+
+        $sc = array(
+            'server' => (isset($this->collected['header']['server'])) ? $this->collected['header']['server'] : Standards::$default,
+            'powered_by' => (isset($this->collected['header']['x-powered-by'])) ? $this->collected['header']['x-powered-by'] : Standards::$default,
+        );
+
+        $this->collected['serverConfig'] = $sc;
+
+        return $sc;
     }
 
     /**
@@ -76,8 +103,17 @@ class BodyParse
         }
 
         $parsed = array();
+        $http_code = '302';
         $lines = explode("\n", $this->header);
         foreach ($lines as $l_num => $line) {
+            if (preg_match('#HTTP/(.*?)\s([\d]+)#i', $line, $matched)) {
+                $http_code = $matched[2];
+            }
+
+            if (preg_match('/location:(.*)/i', $line, $matched)) {
+                $this->collected['redirects'][trim($matched[1])] = $http_code;
+            }
+
             // if empty line occurred means we got multi headers; so we reset $parsed, to get the next one
             if (!trim($line)) {
                 $parsed = array();
