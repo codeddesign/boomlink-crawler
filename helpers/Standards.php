@@ -225,4 +225,90 @@ class Standards
 
         return $string;
     }
+
+    /**
+     * @param $robotsFileContent
+     * @return array|bool
+     */
+    public static function getRobotsRules($robotsFileContent)
+    {
+        if ($robotsFileContent == FALSE) {
+            return FALSE;
+        }
+
+        // defaults:
+        $rules = array();
+        $agent = '*';
+        $i = 0;
+
+        // parsing:
+        $lines = explode("\n", $robotsFileContent);
+        foreach ($lines as $l_num => $line) {
+            $line = trim($line);
+
+            if (preg_match('#^user-agent: (.*)#i', $line, $matched)) {
+                $agent = trim($matched[1]);
+            }
+
+            if (preg_match('#^(allow|disallow):(.*)#i', $line, $matched)) {
+                $rules[$agent][$i]['type'] = strtolower(trim($matched[1]));
+                $rules[$agent][$i]['match'] = trim($matched[2]);
+                $i++;
+            }
+        }
+
+        return $rules;
+    }
+
+    /**
+     * @param $robotsRules
+     * @param $crawlerAgent
+     * @param $link
+     * @return bool
+     */
+    public static function respectsRobotsRules($robotsRules, $crawlerAgent, $link)
+    {
+        if (!is_array($robotsRules)) {
+            return true;
+        }
+
+        # do tests, by adding some rules:
+        //$robotsRules['*'][] = array('type' => 'allow', 'match' => '/service/file.html');
+        //$robotsRules['*'][] = array('type' => 'disallow', 'match' => '/service');
+
+        $parsed = parse_url($link);
+        if (!isset($parsed['path'])) {
+            $path = '/';
+        } else {
+            $path = $parsed['path'];
+        }
+
+        /* $userAgent can be '*' or a specific name user-agent (robot's name, ..) */
+        $allowed = true;
+        $tempo = 0;
+        foreach ($robotsRules as $userAgent => $rules) {
+            if ($userAgent == '*' OR $userAgent == $crawlerAgent) {
+                foreach ($rules as $r_no => $rule) {
+                    # needed because we are doing some checks based on length too.
+                    $rule_match = $rule['match'];
+                    $rule_match = preg_quote($rule_match);
+                    $length = strlen($rule_match);
+
+                    #IMPORTANT: preg_match requires '#' as delimiter!
+                    if (preg_match('#^' . $rule_match . '#', $path, $matched)) {
+                        if ($tempo < $length) {
+                            $tempo = $length;
+                            $allowed = ($rule['type'] == 'allow') ? true : false;
+                        } elseif ($tempo == $length AND $rule['type'] == 'allow') {
+                            $tempo = $length;
+                            $allowed = true;
+                        }
+                    }
+                }
+
+            }
+        }
+
+        return $allowed;
+    }
 }

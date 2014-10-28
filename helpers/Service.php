@@ -9,7 +9,7 @@ class Service
     {
         // keeps available services:
         $this->servicesAvailable = $servicesAvailable;
-        $this->servicesWaitable = $this->getservicesWaitable($servicesAvailable);
+        $this->servicesWaitable = $this->getServicesWaitable($servicesAvailable);
 
         // service sets:
         $this->servicePID = $this->getPID();
@@ -24,7 +24,12 @@ class Service
      */
     public function getPID()
     {
-        return getmypid();
+        if (!function_exists('posix_getpid()')) {
+            $this->debug('posix_getpid(): does not exist.');
+            return false;
+        }
+
+        return posix_getpid();
     }
 
     /**
@@ -39,7 +44,7 @@ class Service
      * @param $servicesAvailable
      * @return array
      */
-    protected function getservicesWaitable($servicesAvailable)
+    protected function getServicesWaitable($servicesAvailable)
     {
         $waitable = array();
         foreach ($servicesAvailable as $s_no => $service) {
@@ -52,17 +57,48 @@ class Service
     }
 
     /**
+     * @param null $pid
+     */
+    private function threadKill($pid = NULL)
+    {
+        if (!function_exists('posix_kill')) {
+            $this->debug('posix_kill(): does not exist', static::DO_EXIT);
+        }
+
+        if ($pid == NULL) {
+            $pid = $this->getPID();
+        }
+
+        posix_kill($pid, 9);
+    }
+
+    /**
+     * @return int
+     */
+    private function threadFork()
+    {
+        if (!function_exists('pcntl_fork')) {
+            $this->debug('pcntl_fork(): does not exist', static::DO_EXIT);
+        }
+
+        return pcntl_fork();
+    }
+
+    /**
      * @param $callback
      * @param $callbackArgs
      */
-    private function createThread($callback, $callbackArgs)
+    private function threadCreate($callback, $callbackArgs)
     {
         if ($this->servicePID == $this->getPID()) {
-            $childPid = pcntl_fork();
+            $childPid = $this->threadFork();
             $this->PIDs[$childPid] = strtolower($callback);
 
             if (!$childPid) {
                 $this->debug('created thread with pid:' . $this->getPID());
+
+                # random delay in milliseconds before thread's action:
+                $this->doDelay();
 
                 /* child action: */
                 if (class_exists($callback)) {
@@ -83,7 +119,7 @@ class Service
                 }
 
                 /* needed exit: */
-                posix_kill(getmypid(), 9);
+                $this->threadKill();
             }
         }
     }
@@ -98,7 +134,7 @@ class Service
         foreach ($this->servicesAvailable as $s_no => $info) {
             if (strtolower($info['class']) == strtolower($className)) {
                 $found = true;
-                $this->createThread($info['class'], $arguments);
+                $this->threadCreate($info['class'], $arguments);
             }
         }
 
@@ -202,7 +238,6 @@ class Service
         return json_decode($shm_data, TRUE);
     }
 
-
     /**
      * @param $pid
      * @param array $data_arr
@@ -224,6 +259,19 @@ class Service
     }
 
     /**
+     * Purpose: do a random (100-300mls) or predefined (as parameter) sleep in milliseconds!
+     * @param bool|int $milliseconds
+     */
+    protected function doDelay($milliseconds = FALSE)
+    {
+        if (!$milliseconds) {
+            $milliseconds = rand(100, 300);
+        }
+
+        usleep($milliseconds);
+    }
+
+    /**
      * @param int $seconds
      */
     protected function doPause($seconds = 5)
@@ -239,7 +287,11 @@ class Service
     protected function debug($msg, $exit = false)
     {
         if (static::DEBUG) {
-            var_dump($msg);
+            if (is_array($msg)) {
+                print_r($msg);
+            } else {
+                echo $msg;
+            }
             echo "\n";
         }
 

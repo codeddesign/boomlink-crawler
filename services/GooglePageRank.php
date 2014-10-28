@@ -16,7 +16,7 @@ class GooglePageRank
     /**
      * @return string
      */
-    public function getRank()
+    private function getRank()
     {
         $url = 'http://toolbarqueries.google.com/tbr?client=navclient-auto&ch=' . $this->CheckHash($this->HashURL($this->link)) . '&features=Rank&q=info:' . $this->link . '&num=100&filter=0';
 
@@ -40,7 +40,7 @@ class GooglePageRank
      * @param $hashNum
      * @return string
      */
-    protected function CheckHash($hashNum)
+    private function CheckHash($hashNum)
     {
         $CheckByte = 0;
         $Flag = 0;
@@ -76,7 +76,7 @@ class GooglePageRank
      * @param $String
      * @return int
      */
-    protected function HashURL($String)
+    private function HashURL($String)
     {
         $Check1 = $this->StrToNum($String, 0x1505, 0x21);
         $Check2 = $this->StrToNum($String, 0, 0x1003F);
@@ -98,7 +98,7 @@ class GooglePageRank
      * @param $Magic
      * @return int
      */
-    protected function StrToNum($Str, $Check, $Magic)
+    private function StrToNum($Str, $Check, $Magic)
     {
         $Int32Unit = 4294967296; // 2^32
 
