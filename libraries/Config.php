@@ -37,12 +37,14 @@ class Config
      * @param $url
      * @return string
      */
-    public static function getConfessLink($url) {
+    public static function getConfessLink($url)
+    {
         $replace = array(
             '/8win/',
             '/var/www/html/',
             '/var/www/',
             '/services',
+            '/libraries',
         );
 
         $path = str_ireplace($replace, '', __DIR__);
