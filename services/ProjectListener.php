@@ -31,18 +31,15 @@ class ProjectListener extends Service
 //                $this->runService('ProxyData', array('url' => 'http://www.sat1.de', 'domain_id' => '5', 'link_id' => '127'));
 
                 # get ApiData:
-//                $this->runService('ApiData', array(
-//                        'domain_id' => '5',
-//                        'urls' => array(
+                $this->runService('ApiData', array(
+                        'domain_id' => '5',
+                        'urls' => array(
 //                            array('url' => 'http://www.sat1gold.de/tv/', 'link_id' => '123'),
-//                            array('url' => 'http://www.codeddesign.org', 'link_id' => '124'),
+                            array('url' => 'http://www.codeddesign.org', 'link_id' => '124'),
 //                            array('url' => 'http://www.sat1.de', 'link_id' => '127'),
-//                        )
-//                    )
-//                );
-
-                # get page's duration to load in seconds AND weight in kb:
-                $this->runService('DurationSizeData', array('url' => 'http://prosieben.de'));
+                        )
+                    )
+                );
 
                 # wait for 'waitable' services:
                 $this->waitForFinish();

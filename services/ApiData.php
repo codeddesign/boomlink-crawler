@@ -21,6 +21,7 @@ class ApiData extends Service
             $temp = array(
                 'majestic_' . $a_no => Config::getApiLink('majestic', $info['url']),
                 'uclassify_read_' . $a_no => Config::getApiLink('uclassify_read', $info['url']),
+                'phantom_' . $a_no => Config::getConfessLink($info['url']),
             );
 
             $this->external_links = array_merge($this->external_links, $temp);
@@ -80,6 +81,9 @@ class ApiData extends Service
                     }
 
                     $this->dataCollected[$match][$this->arguments['urls'][$link_no]['link_id']] = $save;
+                    break;
+                case 'phantom':
+                    $this->dataCollected[$match][$this->arguments['urls'][$link_no]['link_id']] = json_decode($content);
                     break;
             }
         }

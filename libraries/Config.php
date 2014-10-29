@@ -32,4 +32,21 @@ class Config
         $info = self::$api_keys[$keyName];
         return sprintf($info['pattern'], $info['key'], $url);
     }
+
+    /**
+     * @param $url
+     * @return string
+     */
+    public static function getConfessLink($url) {
+        $replace = array(
+            '/8win/',
+            '/var/www/html/',
+            '/var/www/',
+            '/services',
+        );
+
+        $path = str_ireplace($replace, '', __DIR__);
+
+        return 'http://localhost/' . $path . '/scripts/run_confess.php?url=' . $url;
+    }
 } 

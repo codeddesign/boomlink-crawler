@@ -53,4 +53,4 @@ while (!$valuesOK AND $attempt < $max_attempts) {
 }
 
 // shows result:
-echo $RESULT;
+exit($RESULT);
