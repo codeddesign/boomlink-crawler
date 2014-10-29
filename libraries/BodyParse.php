@@ -73,6 +73,9 @@ class BodyParse
         $this->getAllLinksData();
     }
 
+    /**
+     * @return array
+     */
     public function getServerConfig()
     {
         if (isset($this->collected['serverConfig'])) {

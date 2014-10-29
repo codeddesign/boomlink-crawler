@@ -260,9 +260,12 @@ class Standards
             }
 
             if (preg_match('#^(allow|disallow):(.*)#i', $line, $matched)) {
-                $rules[$agent][$i]['type'] = strtolower(trim($matched[1]));
-                $rules[$agent][$i]['match'] = trim($matched[2]);
-                $i++;
+                // save only the ones which have something set as 'path':
+                if (strlen(trim($matched[2])) > 0) {
+                    $rules[$agent][$i]['type'] = strtolower(trim($matched[1]));
+                    $rules[$agent][$i]['match'] = trim($matched[2]);
+                    $i++;
+                }
             }
         }
 
