@@ -5,7 +5,7 @@ class ApiData extends Service
     private $curl, $external_links, $arguments;
 
     /**
-     * [!IMPORTANT] $arguments is an array of arrays holding links to be parsed and another needed information]
+     * [!IMPORTANT] $arguments is an array of arrays holding links to be parsed and another needed information
      * @param array $arguments
      */
     public function doSets(array $arguments = array('domain_id' => '', 'urls' => array()))

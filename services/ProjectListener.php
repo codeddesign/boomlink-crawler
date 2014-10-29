@@ -28,20 +28,18 @@ class ProjectListener extends Service
                 # get External data (google&bing indexed, social data (fb, tweeter, google+), google rank):
 //                $this->runService('ProxyData', array('url' => 'http://www.sat1gold.de/tv/', 'domain_id' => '1', 'link_id' => '123'));
 //                $this->runService('ProxyData', array('url' => 'http://www.codeddesign.org', 'domain_id' => '2', 'link_id' => '124'));
-//                $this->runService('ProxyData', array('url' => 'http://www.protv.ro', 'domain_id' => '3', 'link_id' => '125'));
-//                $this->runService('ProxyData', array('url' => 'http://www.trafic.ro', 'domain_id' => '4', 'link_id' => '126'));
 //                $this->runService('ProxyData', array('url' => 'http://www.sat1.de', 'domain_id' => '5', 'link_id' => '127'));
 
                 # get ApiData:
-                $this->runService('ApiData', array(
-                        'domain_id' => '5',
-                        'urls' => array(
-                            array('url' => 'http://www.protv.ro', 'link_id' => '125'),
-                            array('url' => 'http://www.trafic.ro', 'link_id' => '126'),
-                            array('url' => 'http://www.sat1.de', 'link_id' => '127'),
-                        )
-                    )
-                );
+//                $this->runService('ApiData', array(
+//                        'domain_id' => '5',
+//                        'urls' => array(
+//                            array('url' => 'http://www.sat1gold.de/tv/', 'link_id' => '123'),
+//                            array('url' => 'http://www.codeddesign.org', 'link_id' => '124'),
+//                            array('url' => 'http://www.sat1.de', 'link_id' => '127'),
+//                        )
+//                    )
+//                );
 
                 # wait for 'waitable' services:
                 $this->waitForFinish();
