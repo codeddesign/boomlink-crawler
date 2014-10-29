@@ -2,7 +2,6 @@
 
 class Service
 {
-    const DO_EXIT = TRUE;
     protected $serviceName, $servicePID, $PIDs, $servicesAvailable, $servicesWaitable, $dataCollected, $crawlers, $startTime;
 
     function __construct(array $servicesAvailable = array())
@@ -64,7 +63,7 @@ class Service
     private function threadKill($pid = NULL)
     {
         if (!function_exists('posix_kill')) {
-            Standards::debug('posix_kill(): does not exist', static::DO_EXIT);
+            Standards::debug('posix_kill(): does not exist', Standards::DO_EXIT);
         }
 
         if ($pid == NULL) {
@@ -80,7 +79,7 @@ class Service
     private function threadFork()
     {
         if (!function_exists('pcntl_fork')) {
-            Standards::debug('pcntl_fork(): does not exist', static::DO_EXIT);
+            Standards::debug('pcntl_fork(): does not exist', Standards::DO_EXIT);
         }
 
         return pcntl_fork();
@@ -117,7 +116,7 @@ class Service
                 } else if (function_exists($callback)) {
                     $this->callFunction($callback, $callbackArgs);
                 } else {
-                    Standards::debug(__METHOD__ . ': Class/Function \'' . $callback . '\' does not exist.', static::DO_EXIT);
+                    Standards::debug(__METHOD__ . ': Class/Function \'' . $callback . '\' does not exist.', Standards::DO_EXIT);
                 }
 
                 /* needed exit: */
@@ -141,7 +140,7 @@ class Service
         }
 
         if (!$found) {
-            Standards::debug(__METHOD__ . ': service \'' . $className . '\' not \'available\'.', static::DO_EXIT);
+            Standards::debug(__METHOD__ . ': service \'' . $className . '\' not \'available\'.', Standards::DO_EXIT);
         }
     }
 
@@ -156,14 +155,14 @@ class Service
         //Standards::debug(__METHOD__ . ': calling method');
 
         $obj = new $className();
-        if (!method_exists($obj, 'makeSets')) {
-            Standards::debug($className . ' is missing makeSets() method', static::DO_EXIT);
+        if (!method_exists($obj, 'doSets')) {
+            Standards::debug($className . ' is missing doSets() method', Standards::DO_EXIT);
         } else {
-            $obj->makeSets($arguments);
+            $obj->doSets($arguments);
         }
 
         if (!method_exists($obj, 'doWork')) {
-            Standards::debug($className . ' is missing doWork() method', static::DO_EXIT);
+            Standards::debug($className . ' is missing doWork() method', Standards::DO_EXIT);
         } else {
             $obj->doWork($arguments);
         }
@@ -190,7 +189,7 @@ class Service
     protected function waitForFinish($PIDs = array())
     {
         if (count($this->PIDs) == 0) {
-            Standards::debug(__METHOD__ . ': No sub-processes running', static::DO_EXIT);
+            Standards::debug(__METHOD__ . ': No sub-processes running', Standards::DO_EXIT);
         }
 
         $waitedPIDs = $this->PIDs;

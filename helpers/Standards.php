@@ -3,7 +3,7 @@
 class Standards
 {
     public static $default = 'n/a';
-    CONST DEBUG = TRUE;
+    CONST DEBUG = TRUE, DO_EXIT = TRUE;
 
     /**
      * @param $link

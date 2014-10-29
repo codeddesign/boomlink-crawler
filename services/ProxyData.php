@@ -6,15 +6,15 @@
  * - It also takes care of the proxy logic;
  * */
 
-class ExternalData extends Service
+class ProxyData extends Service
 {
     private $curl, $external_links, $link;
 
-    public function makeSets(array $arguments = array('url' => '', 'domain_id' => '', 'url_id' => ''))
+    public function doSets(array $arguments = array('url' => '', 'domain_id' => '', 'url_id' => ''))
     {
         $link = trim($arguments['url']);
         if (strlen($link) == 0 OR !Standards::linkHasScheme($link)) {
-            Standards::debug(__CLASS__ . ': missing link?', static::DO_EXIT);
+            Standards::debug(__CLASS__ . ': missing link?', Standards::DO_EXIT);
         }
 
         // sets:
@@ -50,13 +50,13 @@ class ExternalData extends Service
         $this->curl->run();
 
         // parse body's for needed data:
-        $this->parseExternalData();
+        $this->parseProxyData();
     }
 
     /**
      * Parses data:
      */
-    private function parseExternalData()
+    private function parseProxyData()
     {
         $bodies = $this->curl->getBodyOnly();
         foreach ($bodies as $key => $content) {

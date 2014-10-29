@@ -7,7 +7,7 @@ class RobotsFile extends Service
     /**
      * @param array $arguments
      */
-    public function makeSets(array $arguments = array('url' => '', 'domain_id' => ''))
+    public function doSets(array $arguments = array('url' => '', 'domain_id' => ''))
     {
         $this->link = trim($arguments['url']);
         $this->dataCollected = array(
@@ -40,7 +40,7 @@ class RobotsFile extends Service
     {
         if (strlen($this->link) == 0 OR !Standards::linkHasScheme($this->link)) {
             # This should never happen:
-            Standards::debug(__CLASS__ . ': Invalid link: missing \'scheme\' (http|https).' . "\n", static::DO_EXIT);
+            Standards::debug(__CLASS__ . ': Invalid link: missing \'scheme\' (http|https).' . "\n", Standards::DO_EXIT);
         }
 
         $parts = parse_url($this->link);

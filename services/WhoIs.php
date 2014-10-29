@@ -14,7 +14,7 @@ class WhoIs extends Service
     /**
      * @param $arguments
      */
-    public function makeSets(array $arguments = array('url' => '', 'domain_id' => ''))
+    public function doSets(array $arguments = array('url' => '', 'domain_id' => ''))
     {
         // set domain:
         $this->domain = Standards::getHost($arguments['url']);
@@ -204,7 +204,7 @@ class WhoIs extends Service
     private function get_info_network()
     {
         if ($this->ip == $this->domain) {
-            Standards::debug('Failed to get ip [' . $this->ip . '=?' . $this->domain . ']'/*, static::DO_EXIT*/);
+            Standards::debug('Failed to get ip [' . $this->ip . '=?' . $this->domain . ']'/*, Standards::DO_EXIT*/);
             return array();
         }
 
@@ -227,7 +227,7 @@ class WhoIs extends Service
 
         if (!isset($data)) {
             $data = array();
-            Standards::debug('Failed to get network info from.'/*, static::DO_EXIT*/);
+            Standards::debug('Failed to get network info from.'/*, Standards::DO_EXIT*/);
         }
 
         return $data;
