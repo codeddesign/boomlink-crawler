@@ -3,6 +3,7 @@
 class Standards
 {
     public static $default = 'n/a';
+    CONST DEBUG = TRUE;
 
     /**
      * @param $link
@@ -322,5 +323,49 @@ class Standards
         }
 
         return $allowed;
+    }
+
+    /**
+     * Purpose: do a random (100-300mls) or predefined (as parameter) sleep in milliseconds!
+     * @param bool|int $milliseconds
+     */
+    public static function doDelay($milliseconds = FALSE)
+    {
+        if (!$milliseconds) {
+            $milliseconds = rand(100, 300);
+        }
+
+        usleep($milliseconds);
+    }
+
+
+    /**
+     * @param string $service
+     * @param int $seconds
+     */
+    public static function doPause($service = 'script', $seconds = 5)
+    {
+        self::debug($service . ' is sleeping ' . $seconds . 's');
+        sleep($seconds);
+    }
+
+    /**
+     * @param $msg
+     * @param bool $exit
+     */
+    public static function debug($msg, $exit = false)
+    {
+        if (self::DEBUG) {
+            if (is_array($msg)) {
+                print_r($msg);
+            } else {
+                echo $msg;
+            }
+            echo "\n";
+        }
+
+        if ($exit) {
+            exit(-1);
+        }
     }
 }

@@ -2,7 +2,13 @@
 
 class ProjectListener extends Service
 {
-    private $startTime;
+    /**
+     * do some sets:
+     */
+    public function makeSets()
+    {
+        Standards::debug(__CLASS__ . ' (parent thread) is: ' . $this->getPID());
+    }
 
     public function getNewProjects()
     {
@@ -31,39 +37,12 @@ class ProjectListener extends Service
                 $newOne = false;
 
                 echo "data collected:\n";
-                $this->debug($this->getDataCollected());
-                $this->debug('temporary exit!', static::DO_EXIT);
+                Standards::debug($this->getDataCollected());
+                Standards::debug('temporary exit!', static::DO_EXIT);
             }
 
             // ...
-            $this->doPause();
+            Standards::doPause($this->serviceName, 5);
         }
-    }
-
-    /**
-     * do some sets:
-     */
-    public function makeSets()
-    {
-        $this->startTime = time();
-        $this->debug(__CLASS__ . ' (parent thread) is: ' . $this->getPID());
-    }
-
-    /**
-     * @param int $hours
-     * @return bool
-     */
-    private function hoursPassed($hours = 6)
-    {
-        $currentTime = time();
-        $_24h = 60 * 60 * $hours;
-
-        $result = ($this->startTime + $_24h) > $currentTime;
-        if ($result) {
-            // reset startTime:
-            $this->startTime = time();
-        }
-
-        return $result;
     }
 }

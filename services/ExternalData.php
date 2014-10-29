@@ -14,11 +14,11 @@ class ExternalData extends Service
     {
         $link = trim($arguments['url']);
         if (strlen($link) == 0 OR !Standards::linkHasScheme($link)) {
-            $this->debug(__CLASS__ . ': missing link?', static::DO_EXIT);
+            Standards::debug(__CLASS__ . ': missing link?', static::DO_EXIT);
         }
-        $this->link = $link;
 
         // sets:
+        $this->link = $link;
         $this->external_links = array(
             // social:
             'facebook' => 'http://api.facebook.com/restserver.php?method=links.getStats&urls=' . $link,

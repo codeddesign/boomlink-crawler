@@ -78,7 +78,7 @@ class WhoIs extends Service
     {
         /* set 'whois' server: */
         $resp = $this->set_whois_server();
-        //$this->debug($resp);
+        //Standards::debug($resp);
 
         /* set ip: */
         $this->dataCollected['server_ip'] = $this->ip;
@@ -86,11 +86,11 @@ class WhoIs extends Service
         /* get 'created/registration date': */
         $resp = $this->get_info_domain();
         $this->dataCollected['registration_date'] = $this->determineRegistrationDate($resp);
-        //$this->debug($resp);
+        //Standards::debug($resp);
 
         /* get ip, server location, hosting company: */
         $resp = $this->get_info_network();
-        //$this->debug($resp);
+        //Standards::debug($resp);
 
         $this->dataCollected['server_location'] = $this->determineCountry($resp);
         $this->dataCollected['hosting_company'] = $this->determineHostingCompany($resp);
@@ -204,7 +204,7 @@ class WhoIs extends Service
     private function get_info_network()
     {
         if ($this->ip == $this->domain) {
-            $this->debug('Failed to get ip [' . $this->ip . '=?' . $this->domain . ']'/*, static::DO_EXIT*/);
+            Standards::debug('Failed to get ip [' . $this->ip . '=?' . $this->domain . ']'/*, static::DO_EXIT*/);
             return array();
         }
 
@@ -227,7 +227,7 @@ class WhoIs extends Service
 
         if (!isset($data)) {
             $data = array();
-            $this->debug('Failed to get network info from.'/*, static::DO_EXIT*/);
+            Standards::debug('Failed to get network info from.'/*, static::DO_EXIT*/);
         }
 
         return $data;

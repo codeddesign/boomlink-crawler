@@ -2,7 +2,7 @@
 
 class Curl
 {
-    private $curl_config, $curl_sets, $content, $header, $links, $debug, $link_info, $parsedCurlInfo;
+    private $curl_config, $curl_sets, $content, $header, $links, $link_info, $parsedCurlInfo;
 
     /**
      * @param array $opts
@@ -11,7 +11,6 @@ class Curl
     function __construct(array $opts = array())
     {
         // sets:
-        $this->debug = true;
         $this->links = $this->link_info = NULL;
         $this->parsedCurlInfo = array();
 
