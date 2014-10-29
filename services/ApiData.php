@@ -83,7 +83,16 @@ class ApiData extends Service
                     $this->dataCollected[$match][$this->arguments['urls'][$link_no]['link_id']] = $save;
                     break;
                 case 'phantom':
-                    $this->dataCollected[$match][$this->arguments['urls'][$link_no]['link_id']] = json_decode($content);
+                    $temp = @json_decode($content);
+                    if (!isset($temp['url']) OR isset($temp['size'])) {
+                        $temp = array(
+                            'url' => $this->arguments['urls'][$link_no]['link_id']['link'],
+                            'duration' => 'n/a',
+                            'size' => 'n/a',
+                        );
+                    }
+
+                    $this->dataCollected[$match][$this->arguments['urls'][$link_no]['link_id']] = $temp;
                     break;
             }
         }
