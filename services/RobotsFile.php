@@ -27,9 +27,9 @@ class RobotsFile extends Service
 
         $curlInfo = $curl->getLinkCurlInfo();
         if ($curlInfo['http_code'] == '200') {
-            $this->dataCollected['robots.txt'] = $curl->getBodyOnly();
+            $this->dataCollected['robots_file'] = $curl->getBodyOnly();
         } else {
-            $this->dataCollected['robots.txt'] = FALSE;
+            $this->dataCollected['robots_file'] = FALSE;
         }
     }
 

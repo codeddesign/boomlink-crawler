@@ -6,17 +6,12 @@ class MySQL
 
     function __construct()
     {
-        $config = array(
-            'host' => '',
-            'db_name' => '',
-            'port' => 3306,
-            'username' => '',
-            'password' => '',
+        $this->config = array(
+            'host' => '104.131.14.145',
+            'db_name' => 'site_analysis',
+            'username' => 'root',
+            'password' => 'My6Celeb',
         );
-
-        // sets:
-        $this->config = $config;
-        $this->connection = false;
 
         // connect:
         $this->makeConnection();
@@ -27,12 +22,11 @@ class MySQL
      */
     private function makeConnection()
     {
-        if ($con = mysqli_connect($this->config['host'], $this->config['username'], $this->config['password'], $this->config['db_name'])) {
-            $this->connection = $con;
-            mysqli_query($con, 'SET CHARACTER SET utf8');
+        $this->connection = mysqli_connect($this->config['host'], $this->config['username'], $this->config['password'], $this->config['db_name']);
+        if ($this->connection) {
+            mysqli_query($this->connection, 'SET CHARACTER SET utf8');
         } else {
-            $this->connection = false;
-            exit('EXIT: failed to connect to database.');
+            Standards::debug('Failed to connect to database.', Standards::DO_EXIT);
         }
     }
 
@@ -51,7 +45,7 @@ class MySQL
 
             //create new one:
             $this->makeConnection();
-            if ($this->connection !== false) {
+            if (is_resource($this->connection) AND $this->connection !== false) {
                 return true;
             } else {
                 return false;
@@ -61,40 +55,45 @@ class MySQL
 
     /**
      * @param $query
-     * @return bool
+     * @return bool|int|string
      */
     public function runQuery($query)
     {
         if ($this->connectionIsOk()) {
-            if (!mysqli_query($this->connection, $query)) {
-                exit(mysql_error());
+            if (!($id = mysqli_query($this->connection, $query))) {
+                Standards::debug(mysqli_error($this->connection), Standards::DO_EXIT);
             }
 
-            return true;
+            return mysqli_insert_id($this->connection);
         } else {
+            Standards::debug('Something went wrong with db connection.', Standards::DO_EXIT);
             return false;
         }
     }
 
     /**
      * @param $query
-     * @return array|null
+     * @return array|bool
      */
     public function getResults($query)
     {
+        $rows = FALSE;
         if ($this->connectionIsOk()) {
-            if (!($handle = mysqli_query($this->connection, $query))) {
-                exit(mysql_error());
+            $handle = mysqli_query($this->connection, $query);
+            if ($handle) {
+                if (mysqli_num_rows($handle) == 1) {
+                    $rows[] = $handle->fetch_assoc();
+                } else {
+                    while ($row = mysqli_fetch_assoc($handle)) {
+                        $rows[] = $row;
+                    }
+                }
             } else {
-                $out = mysqli_fetch_all($handle, MYSQLI_ASSOC);
+                Standards::debug(mysqli_error($this->connection), Standards::DO_EXIT);
             }
         }
 
-        if (!isset($out) OR $out == NULL) {
-            $out = array();
-        }
-
-        return $out;
+        return $rows;
     }
 
     public function endConnection()

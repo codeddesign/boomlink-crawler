@@ -557,8 +557,8 @@ var confess = {
         var data = {
             //'instance': this.instance,
             'url': this.config.url,
-            'duration': parseFloat(x.totalDuration / 1000).toFixed(2) + 's',
-            'size': parseFloat(x.totalSize / 1024).toFixed(2) + 'kb'
+            'duration': parseFloat(x.totalDuration / 1000).toFixed(2),
+            'size': parseFloat(x.totalSize / 1024).toFixed(2)
         };
 
         console.log(JSON.stringify(data));

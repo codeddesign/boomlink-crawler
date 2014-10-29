@@ -331,6 +331,7 @@ class Standards
      */
     public static function doDelay($milliseconds = FALSE)
     {
+        return false;
         if (!$milliseconds) {
             $milliseconds = rand(100, 300);
         }
