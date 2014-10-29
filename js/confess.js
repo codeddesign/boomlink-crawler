@@ -4,11 +4,11 @@ var confess = {
     instance: -1,
     url_instance: 0,
     showConfessLog: false, // by me
-    run: function (my_url, my_task, instance) {
+    run: function (/*my_url, my_task, instance*/) {
         var cliConfig = {};
-        var arguments_are = false;
-        this.instance = instance;
-        this.url_instance = my_url;
+        var arguments_are = true;
+        /*this.instance = instance;
+         this.url_instance = my_url;*/
         if (arguments_are && !this.processArgs(cliConfig, [
                 {
                     name: 'url',
@@ -33,9 +33,9 @@ var confess = {
         }
 
         //by me:
-        cliConfig.url = my_url;
-        cliConfig.task = my_task;
-        /*console.log(JSON.stringify(cliConfig) + this.instance);*/ // by me
+        //cliConfig.url = my_url;
+        //cliConfig.task = my_task;
+        console.log(JSON.stringify(cliConfig) + this.instance); // by me
         //this.config = this.mergeConfig(cliConfig, cliConfig.configFile);
 
         //by me:
@@ -555,10 +555,10 @@ var confess = {
     showNeededData: function () {
         var x = this.performance;
         var data = {
-            'instance': this.instance,
-            'url': this.url_instance,
-            'duration': parseFloat(x.totalDuration / 1000).toFixed(2),
-            'size': parseFloat(x.totalSize / 1024).toFixed(2)
+            //'instance': this.instance,
+            'url': this.config.url,
+            'duration': parseFloat(x.totalDuration / 1000).toFixed(2) + 's',
+            'size': parseFloat(x.totalSize / 1024).toFixed(2) + 'kb'
         };
 
         console.log(JSON.stringify(data));
@@ -566,4 +566,4 @@ var confess = {
     }
 };
 
-confess.run('http://codeddesign.org', 'performance', 1);
+confess.run(/*'http://codeddesign.org', 'performance', 1*/);
