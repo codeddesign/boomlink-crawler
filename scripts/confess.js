@@ -35,7 +35,7 @@ var confess = {
         //by me:
         //cliConfig.url = my_url;
         //cliConfig.task = my_task;
-        console.log(JSON.stringify(cliConfig) + this.instance); // by me
+        //console.log(JSON.stringify(cliConfig) + this.instance); // by me
         //this.config = this.mergeConfig(cliConfig, cliConfig.configFile);
 
         //by me:

@@ -41,6 +41,9 @@ class ProjectListener extends Service
 //                    )
 //                );
 
+                # get page's duration to load in seconds AND weight in kb:
+                $this->runService('DurationSizeData', array('url' => 'http://prosieben.de'));
+
                 # wait for 'waitable' services:
                 $this->waitForFinish();
                 $newOne = false;
