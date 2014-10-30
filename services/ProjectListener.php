@@ -107,6 +107,11 @@ class ProjectListener extends Service
     private function areNewProjects()
     {
         $newOnes = false;
+
+        if (!is_array($this->allProjects)) {
+            return $newOnes;
+        }
+
         foreach ($this->allProjects as $c_no => $info) {
             if ($info['status'] == 0 OR !isset($this->crawlingDomains[$info['domain_name']])) {
                 $newOnes[] = $info;
@@ -118,9 +123,8 @@ class ProjectListener extends Service
 
     public function doWork()
     {
-        // run sub-service ProxyData:
-        //$this->runService('ProxyData', array());
-        //exit;
+        # RUN: parallel sub-service ProxyData:
+        $this->runService('ProxyData', array());
 
         // rest of logic:
         $RUN = TRUE;
@@ -146,8 +150,8 @@ class ProjectListener extends Service
                     }
 
                     # 'non-waitable' data:
-                    //$this->runService('CrawlProject', $params);
-                    //$this->runService('ApiData', $params);
+                    $this->runService('CrawlProject', $params);
+                    $this->runService('ApiData', $params);
 
                     # keep track of the 'crawled' domain:
                     $this->crawlingDomains[$info['domain_name']] = '';

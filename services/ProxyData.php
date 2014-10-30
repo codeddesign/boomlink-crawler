@@ -8,7 +8,7 @@
 
 class ProxyData extends Service
 {
-    private $dbo, $curl, $external_links, $proxies;
+    private $dbo, $curl, $external_links, $proxies, $link_id;
     CONST CURRENT_STATUS = 0, NEW_STATUS = 1;
 
     public function doSets(array $arguments = array())
@@ -28,20 +28,39 @@ class ProxyData extends Service
     /**
      * @return bool|array
      */
-    private function getProxies() {
+    private function getProxies()
+    {
         $q = 'SELECT * FROM proxies_list';
         return $this->dbo->getResults($q);
     }
 
-    private function dataSave() {
-        if(count($this->dataCollected) == 0) {
+    private function dataSave()
+    {
+        if (count($this->dataCollected) == 0) {
             return false;
         }
 
+        $sets = array();
+        foreach ($this->dataCollected as $key => $value) {
+            $sets[] = $key . '=\'' . trim($value) . '\'';
+        }
 
+        if (count($sets) == 0) {
+            return false;
+        }
+
+        $q = 'UPDATE _sitemap_links_info SET ' . implode(',', $sets) . ' WHERE link_id=' . $this->link_id;
+        return $this->dbo->runQuery($q);
     }
 
-    private function updateStatus(){
+    private function updateStatus()
+    {
+        /*if (count($this->link_ids) == 0) {
+            return false;
+        }*/
+
+        $q = 'UPDATE _sitemap_links SET proxy_data_status=' . static::NEW_STATUS . ' WHERE id IN (' . $this->link_id . ')';
+        return $this->dbo->runQuery($q);
     }
 
     /**
@@ -50,40 +69,56 @@ class ProxyData extends Service
     public function doWork()
     {
         $RUN = true;
+        $i = 0;
         while ($RUN) {
             $un_parsed = $this->getNonParsedLinks();
-            if(!$un_parsed) {
+            if (!$un_parsed) {
                 $RUN = false;
             } else {
                 $this->proxies = $this->getProxies();
+                $useProxy = $this->proxies[$i];
 
-                $this->external_links = array(
-                    // social:
-                    'facebook' => 'http://api.facebook.com/restserver.php?method=links.getStats&urls=' . $link,
-                    'tweeter' => 'http://urls.api.twitter.com/1/urls/count.json?url=' . $link,
-                    'google' => 'https://plusone.google.com/_/+1/fastbutton?url=' . $link,
+                foreach ($un_parsed as $l_no => $info) {
+                    $this->link_id = $info['id'];
+                    $link = $info['page_url'];
 
-                    // indexed:
-                    'google_indexed' => 'https://www.google.de/search?hl=de&start=0&q=site:' . urlencode($link),
-                    'bing_indexed' => 'http://www.bing.com/search?q=' . $this->cleanLinkForBing($link) . "&go=&qs=n&form=QBRE&filt=all&pq=" . $this->cleanLinkForBing($link) . "&sc=0-0&sp=-1&sk=&cc=de",
+                    $this->external_links = array(
+                        // social:
+                        'facebook' => 'http://api.facebook.com/restserver.php?method=links.getStats&urls=' . $link,
+                        'tweeter' => 'http://urls.api.twitter.com/1/urls/count.json?url=' . $link,
+                        'google_plus' => 'https://plusone.google.com/_/+1/fastbutton?url=' . $link,
 
-                    // rank:
-                    'google_rank' => GooglePR::getURL($link),
-                );
+                        // indexed:
+                        'indexed_google' => 'https://www.google.de/search?hl=de&start=0&q=site:' . urlencode($link),
+                        'indexed_bing' => 'http://www.bing.com/search?q=' . $this->cleanLinkForBing($link) . "&go=&qs=n&form=QBRE&filt=all&pq=" . $this->cleanLinkForBing($link) . "&sc=0-0&sp=-1&sk=&cc=de",
 
-                // do the actual curl:
-                $this->curl = new Curl();
-                $this->curl->addLinks($this->external_links);
-                $this->curl->run();
+                        // rank:
+                        'google_rank' => GooglePR::getURL($link),
+                    );
 
-                // parse body's for needed data:
-                $this->parseProxyData();
 
-                # save data:
-                $this->dataSave();
+                    $this->curl = new Curl(true, array('proxy' => $useProxy));
+                    $this->curl->addLinks($this->external_links);
+                    $this->curl->run();
 
-                # update status:
-                $this->updateStatus();
+                    // parse body's for needed data:
+                    $this->parseProxyData();
+
+                    # save data:
+                    $this->dataSave();
+
+                    # update status:
+                    $this->updateStatus();
+                }
+            }
+
+            if (!isset($this->proxies[$i])) {
+                $i = 0;
+                Standards::doPause('ProxyData', 60 * 15);
+            } else {
+                $i++;
+                # make small delay:
+                Standards::doDelay(rand(100, 300));
             }
         }
     }
@@ -96,7 +131,7 @@ class ProxyData extends Service
         $bodies = $this->curl->getBodyOnly();
         foreach ($bodies as $key => $content) {
             switch ($key) {
-                case 'google':
+                case 'google_plus':
                     $result = 0;
                     if (preg_match("/= \{c:(.*?),/", $content, $matched)) {
                         $result = (int)$matched[1];
@@ -108,8 +143,10 @@ class ProxyData extends Service
                 case 'tweeter':
                     $result = 0;
                     $content = json_decode($content, true);
-                    if (array_key_exists("count", $content)) {
-                        $result = $content["count"];
+                    if (is_array($content)) {
+                        if (array_key_exists('count', $content)) {
+                            $result = $content['count'];
+                        }
                     }
 
                     //
@@ -142,7 +179,7 @@ class ProxyData extends Service
 
                     $this->dataCollected[$key] = $pageRank;
                     break;
-                case 'google_indexed':
+                case 'indexed_google':
                     $res = 'unknown';
                     if (strlen($content) == 0) {
                         $res = "proxy-error";
@@ -154,7 +191,7 @@ class ProxyData extends Service
 
                     $this->dataCollected[$key] = $res;
                     break;
-                case 'bing_indexed':
+                case 'indexed_bing':
                     $res = 'unknown';
                     if (strlen($content) == 0) {
                         $res = "proxy-error";

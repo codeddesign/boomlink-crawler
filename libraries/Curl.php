@@ -55,27 +55,22 @@ class Curl
             CURLOPT_RETURNTRANSFER => TRUE,
             CURLOPT_FRESH_CONNECT => TRUE,
             CURLOPT_SSL_VERIFYPEER => FALSE,
+            CURLOPT_PROXY => FALSE,
         );
+
+        // proxy handle:
+        if (isset($this->curl_sets['proxy'])) {
+            $proxy = $this->curl_sets['proxy'];
+            
+            $this->curl_config[CURLOPT_PROXYTYPE] = 'HTTP';
+            $this->curl_config[CURLOPT_PROXY] = $proxy['ProxyIP'] . ':' . $proxy['ProxyPort'];
+        }
 
         // add options values if available for change:
         foreach ($this->curl_sets as $s_key => $value) {
             if (array_key_exists($s_key, $options_assoc)) {
                 $this->curl_config[constant($options_assoc[$s_key])] = $this->curl_sets[$s_key];
             }
-        }
-
-        // to add or not to add the proxy:
-        if (isset($this->curl_sets['proxy']) AND ($this->curl_sets['proxy']) !== NULL) {
-            //list($ip, $port, $username, $password) = explode(":", trim($this->curl_sets["proxy"]));
-
-            $curl_proxy_config = array(
-                CURLOPT_PROXYTYPE => "HTTP",
-                CURLOPT_PROXY => $this->curl_sets['proxy']['ProxyIP'],
-                CURLOPT_PROXYPORT => $this->curl_sets['proxy']['ProxyPort'],
-                //CURLOPT_PROXYUSERPWD => $username . ':' . $password,
-            );
-
-            $this->curl_config = array_merge($this->curl_config, $curl_proxy_config);
         }
     }
 
