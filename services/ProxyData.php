@@ -114,7 +114,7 @@ class ProxyData extends Service
 
             if (!isset($this->proxies[$i])) {
                 $i = 0;
-                Standards::doPause('ProxyData', 60 * 15);
+                Standards::doPause('ProxyData', 60 * 30);
             } else {
                 $i++;
                 # make small delay:
