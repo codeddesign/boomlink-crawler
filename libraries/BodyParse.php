@@ -603,7 +603,7 @@ class BodyParse
         $links = array();
         foreach ($this->collected['linkData']['internal'] as $a_no => $a) {
             if (isset($a['href'])) {
-                $links[$a['href']] = '';
+                $links[$a['href']] = Standards::json_encode_special(str_ireplace("\r", "", $a['textContent']));;
             }
         }
 
@@ -814,11 +814,15 @@ class BodyParse
         }
 
         $c = $this->collected['crawlableLinks'];
-        foreach ($c as $link => $null) {
-            $c[$link] = $depth;
+        $s = array();
+        foreach ($c as $link => $href) {
+            $s[$link] = array(
+                'depth' => $depth,
+                'href' => $href,
+            );
         }
 
-        return $c;
+        return $s;
     }
 
     public function viewAllData()

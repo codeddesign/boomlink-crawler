@@ -33,8 +33,10 @@ class CrawlProject extends Service
 
             // build links list:
             $links = array();
+            $updateIds = array();
             foreach ($un_parsed as $u_no => $info) {
                 $links[$u_no] = trim($info['page_url']);
+                $updateIds[] = $info['id'];
             }
 
             $curl->addLinks($links);
@@ -54,10 +56,10 @@ class CrawlProject extends Service
                 if ($bp->isCrawlAllowed()) {
                     $save[$l_no] = array(
                         'links_info' => $bp->getLinkInfo(),
-                        'links' => array(
+                        /*'links' => array(
                             'internal' => $bp->getSpecificLinks('internal'),
                             'external' => $bp->getSpecificLinks('external'),
-                        ),
+                        ),*/
                     );
 
                     $nextLinks = $bp->getCrawlableOnes(($l_no + 1));
@@ -76,18 +78,18 @@ class CrawlProject extends Service
                 $this->saveLinkInfo($save, $un_parsed);
 
                 if (count($nextLinks) > 0) {
-                    print_r($nextLinks);
+                    $this->saveNextLinks($nextLinks);
                 }
             }
-            exit;
+
+            # do update of the parsed links to next status:
+            $this->updateLinksByIds($updateIds);
+
             # do pause:
-            Standards::doPause($this->serviceName, 2);
+            Standards::doDelay(rand(100, 300));
 
             # rain-check after work:
             $un_parsed = $this->getNonParsedLinks();
-
-            # tests:
-            $un_parsed = 0;
         }
 
     }
@@ -118,6 +120,19 @@ class CrawlProject extends Service
         return false;
     }
 
+    /**
+     * @param array $updateIds
+     * @return bool
+     */
+    private function updateLinksByIds(array $updateIds)
+    {
+        if (count($updateIds) > 0) {
+            $q = 'UPDATE _sitemap_links SET parsed_status=\'' . static::NEW_STATUS . '\' WHERE id IN (' . implode(',', $updateIds) . ')';
+            return $this->dbo->runQuery($q);
+        }
+
+        return false;
+    }
 
     /**
      * @param array $saveData
@@ -162,6 +177,17 @@ class CrawlProject extends Service
         }
 
         $q = 'INSERT INTO _sitemap_links_info (' . implode(', ', $tableKeys) . ') VALUES ' . implode(',', $values);
+        return $this->dbo->runQuery($q);
+    }
+
+    private function saveNextLinks(array $save)
+    {
+        $values = array();
+        foreach ($save as $link => $info) {
+            $values[] = '(' . $this->domain_id . ', \'' . $link . '\', \'' . $info['depth'] . '\', \'' . addslashes($info['href']) . '\')';
+        }
+
+        $q = 'INSERT INTO _sitemap_links (domain_id, page_url, depth, href) VALUES ' . implode(', ', $values);
         return $this->dbo->runQuery($q);
     }
 }
