@@ -1,5 +1,15 @@
 <?php
 
+/*
+ * * This service workflow *
+ * 1. It waits for new projects to come up
+ * If there are new projects it will create some sub-processes to:
+ * - get robots.txt file and domain information - single time here
+ * - it will create a single instance of CrawlProject (if not already running which is determine by the status value from table)
+ *
+ * 2. It creates a sub-process of ProxyData - that gets the links from db and adds more info to them
+ * */
+
 class ProjectListener extends Service
 {
     private $dbo;
@@ -107,24 +117,24 @@ class ProjectListener extends Service
 
                     /* run sub-services */
                     # 'waitable' data:
-                    $this->runService('WhoIs', $params);
-                    $this->runService('RobotsFile', $params);
+                    //$this->runService('WhoIs', $params);
+                    //$this->runService('RobotsFile', $params);
 
                     # 'non-waitable' data:
-                    // run crawler:
+                    $this->runService('CrawlProject', $params);
                 }
-            }
 
-            # wait for 'waitable' services:
-            $this->waitForFinish();
+                # wait for 'waitable' services:
+                $this->waitForFinish();
 
-            # save data if any?
-            $collected = $this->getDataCollected();
-            if (is_array($collected) AND count($collected) > 0) {
+                # save data if any:
+                $collected = $this->getDataCollected();
                 $this->saveCollectedData();
 
                 Standards::debug('saved data:');
                 Standards::debug($collected);
+            } else {
+                Standards::debug('no new projects');
             }
 
             // ...

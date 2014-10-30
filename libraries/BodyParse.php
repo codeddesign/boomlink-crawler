@@ -11,14 +11,16 @@ class BodyParse
      * @param $body
      * @param $header
      */
-    function __construct($parsedUrl, $body, $header)
+    function __construct($parsedUrl, $body, $header, $curlInfo)
     {
         $this->parsedUrl = $parsedUrl;
         $this->body = $body;
         $this->header = $header;
         $this->parsedDomain = Standards::getHost($parsedUrl);
         $this->mainURL = Standards::getMainURL($parsedUrl);
+        $this->curlInfo = $curlInfo;
 
+        // holder:
         $this->collected = array();
 
         // needed to avoid 'html' errors/warnings:
@@ -70,6 +72,7 @@ class BodyParse
         $this->getLanguage();
         $this->getCharset();
         $this->getHeadingsCount();
+        $this->getCanonicalLINKS();
         $this->getAllLinksData();
     }
 
@@ -88,8 +91,12 @@ class BodyParse
 
         $sc = array(
             'server' => (isset($this->collected['header']['server'])) ? $this->collected['header']['server'] : Standards::$default,
-            'powered_by' => (isset($this->collected['header']['x-powered-by'])) ? $this->collected['header']['x-powered-by'] : Standards::$default,
+            'powered_by' => (isset($this->collected['header']['x-powered-by'])) ? $this->collected['header']['x-powered-by'] : FALSE,
         );
+
+        if ($sc['powered_by'] == FALSE) {
+            unset($sc['powered_by']);
+        }
 
         $this->collected['serverConfig'] = $sc;
 
@@ -724,6 +731,59 @@ class BodyParse
 
         $this->collected['language'] = trim(strtolower($lang));
         return $lang;
+    }
+
+    /**
+     * @param string $type
+     * @return int
+     */
+    private function countLinks($type = '')
+    {
+        $total = 0;
+        foreach ($this->collected['linkData'][$type] as $l_no => $link) {
+            if (isset($link['textContent'])) {
+                $total += count($link['textContent']);
+            }
+        }
+
+        return $total;
+    }
+
+    /**
+     * @return array
+     */
+    public function getLinkInfo()
+    {
+        return array(
+            'page_title' => $this->getPageTitle(),
+            'description' => (isset($this->collected['metaData']['description'])) ? $this->collected['metaData']['description'] : Standards::$default,
+            'content_language' => $this->getLanguage(),
+            'external' => $this->countLinks('external'),
+            'internal' => $this->countLinks('internal'),
+            'no_follow' => $this->countLinks('no-follow'),
+            'follow_links' => ($this->countLinks('external') + $this->countLinks('internal') - $this->countLinks('no-follow')),
+            'h1' => $this->collected['headingsCount']['h1'],
+            'h2' => $this->collected['headingsCount']['h2'],
+            'h3' => $this->collected['headingsCount']['h3'],
+            'h4' => $this->collected['headingsCount']['h4'],
+            'h5' => $this->collected['headingsCount']['h5'],
+            'h6' => $this->collected['headingsCount']['h6'],
+            'http_code' => $this->curlInfo['http_code'],
+            'charset' => $this->getCharset(),
+            'server_config' => implode(';', $this->getServerConfig()),
+
+            // fetched by others:
+            'load_time' => '',
+            'page_weight' => '',
+            'indexed_bing' => '',
+            'indexed_google' => '',
+            'density' => '',
+
+            // defaults, not handled:
+            'cached' => '',
+            'page_trackers' => '',
+
+        );
     }
 
     public function viewAllData()

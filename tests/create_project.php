@@ -11,7 +11,7 @@ $project = array(
     'config' => json_encode(array('rules' => ''), true),
 );
 $domain = Standards::getHost($project['url']);
-$clean_url = Standards::getCleanURL($project['url']);
+$clean_url = Standards::getCleanURL($project['url']) . '/';
 
 // init db:
 $db = new MySQL();
