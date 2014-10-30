@@ -751,7 +751,7 @@ class BodyParse
         if (!isset($this->collected['linkDat'][$type])) {
             return $total;
         }
-        
+
         foreach ($this->collected['linkData'][$type] as $l_no => $link) {
             if (isset($link['textContent'])) {
                 $total += count($link['textContent']);
@@ -825,8 +825,12 @@ class BodyParse
             $this->getFilteredInternalLinksOnly();
         }
 
-        $c = $this->collected['crawlableLinks'];
         $s = array();
+        if (!isset($this->collected['crawlableLinks'])) {
+            return $s;
+        }
+
+        $c = $this->collected['crawlableLinks'];
         foreach ($c as $link => $href) {
             $s[$link] = array(
                 'depth' => $depth,
