@@ -8,35 +8,40 @@
 
 class ProxyData extends Service
 {
-    private $curl, $external_links, $link;
+    private $dbo, $curl, $external_links, $proxies;
+    CONST CURRENT_STATUS = 0, NEW_STATUS = 1;
 
-    public function doSets(array $arguments = array('url' => '', 'domain_id' => '', 'url_id' => ''))
+    public function doSets(array $arguments = array())
     {
-        $link = trim($arguments['url']);
-        if (strlen($link) == 0 OR !Standards::linkHasScheme($link)) {
-            Standards::debug(__CLASS__ . ': missing link?', Standards::DO_EXIT);
+        $this->dbo = new MySQL();
+    }
+
+    /**
+     * @return bool|array
+     */
+    private function getNonParsedLinks()
+    {
+        $q = 'SELECT * FROM _sitemap_links WHERE proxy_data_status=' . self::CURRENT_STATUS . ' LIMIT 1';
+        return $this->dbo->getResults($q);
+    }
+
+    /**
+     * @return bool|array
+     */
+    private function getProxies() {
+        $q = 'SELECT * FROM proxies_list';
+        return $this->dbo->getResults($q);
+    }
+
+    private function dataSave() {
+        if(count($this->dataCollected) == 0) {
+            return false;
         }
 
-        // sets:
-        $this->link = $link;
-        $this->external_links = array(
-            // social:
-            'facebook' => 'http://api.facebook.com/restserver.php?method=links.getStats&urls=' . $link,
-            'tweeter' => 'http://urls.api.twitter.com/1/urls/count.json?url=' . $link,
-            'google' => 'https://plusone.google.com/_/+1/fastbutton?url=' . $link,
 
-            // indexed:
-            'google_indexed' => 'https://www.google.de/search?hl=de&start=0&q=site:' . urlencode($link),
-            'bing_indexed' => 'http://www.bing.com/search?q=' . $this->cleanLinkForBing($link) . "&go=&qs=n&form=QBRE&filt=all&pq=" . $this->cleanLinkForBing($link) . "&sc=0-0&sp=-1&sk=&cc=de",
+    }
 
-            // rank:
-            'google_rank' => GooglePR::getURL($link),
-        );
-
-        $this->dataCollected = array(
-            'domain_id' => $arguments['domain_id'],
-            'link_id' => $arguments['link_id'],
-        );
+    private function updateStatus(){
     }
 
     /**
@@ -44,13 +49,43 @@ class ProxyData extends Service
      */
     public function doWork()
     {
-        // do the actual curl:
-        $this->curl = new Curl();
-        $this->curl->addLinks($this->external_links);
-        $this->curl->run();
+        $RUN = true;
+        while ($RUN) {
+            $un_parsed = $this->getNonParsedLinks();
+            if(!$un_parsed) {
+                $RUN = false;
+            } else {
+                $this->proxies = $this->getProxies();
 
-        // parse body's for needed data:
-        $this->parseProxyData();
+                $this->external_links = array(
+                    // social:
+                    'facebook' => 'http://api.facebook.com/restserver.php?method=links.getStats&urls=' . $link,
+                    'tweeter' => 'http://urls.api.twitter.com/1/urls/count.json?url=' . $link,
+                    'google' => 'https://plusone.google.com/_/+1/fastbutton?url=' . $link,
+
+                    // indexed:
+                    'google_indexed' => 'https://www.google.de/search?hl=de&start=0&q=site:' . urlencode($link),
+                    'bing_indexed' => 'http://www.bing.com/search?q=' . $this->cleanLinkForBing($link) . "&go=&qs=n&form=QBRE&filt=all&pq=" . $this->cleanLinkForBing($link) . "&sc=0-0&sp=-1&sk=&cc=de",
+
+                    // rank:
+                    'google_rank' => GooglePR::getURL($link),
+                );
+
+                // do the actual curl:
+                $this->curl = new Curl();
+                $this->curl->addLinks($this->external_links);
+                $this->curl->run();
+
+                // parse body's for needed data:
+                $this->parseProxyData();
+
+                # save data:
+                $this->dataSave();
+
+                # update status:
+                $this->updateStatus();
+            }
+        }
     }
 
     /**

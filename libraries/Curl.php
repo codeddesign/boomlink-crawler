@@ -66,13 +66,13 @@ class Curl
 
         // to add or not to add the proxy:
         if (isset($this->curl_sets['proxy']) AND ($this->curl_sets['proxy']) !== NULL) {
-            list($ip, $port, $username, $password) = explode(":", trim($this->curl_sets["proxy"]));
+            //list($ip, $port, $username, $password) = explode(":", trim($this->curl_sets["proxy"]));
 
             $curl_proxy_config = array(
                 CURLOPT_PROXYTYPE => "HTTP",
-                CURLOPT_PROXY => $ip,
-                CURLOPT_PROXYPORT => $port,
-                CURLOPT_PROXYUSERPWD => $username . ':' . $password,
+                CURLOPT_PROXY => $this->curl_sets['proxy']['ProxyIP'],
+                CURLOPT_PROXYPORT => $this->curl_sets['proxy']['ProxyPort'],
+                //CURLOPT_PROXYUSERPWD => $username . ':' . $password,
             );
 
             $this->curl_config = array_merge($this->curl_config, $curl_proxy_config);

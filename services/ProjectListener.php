@@ -118,6 +118,11 @@ class ProjectListener extends Service
 
     public function doWork()
     {
+        // run sub-service ProxyData:
+        //$this->runService('ProxyData', array());
+        //exit;
+
+        // rest of logic:
         $RUN = TRUE;
         while ($RUN == TRUE) {
             /* if there are new projects: */
@@ -142,7 +147,7 @@ class ProjectListener extends Service
 
                     # 'non-waitable' data:
                     //$this->runService('CrawlProject', $params);
-                    $this->runService('ApiData', $params);
+                    //$this->runService('ApiData', $params);
 
                     # keep track of the 'crawled' domain:
                     $this->crawlingDomains[$info['domain_name']] = '';
