@@ -24,7 +24,7 @@ $output = array(
 
 // sets:
 $attempt = 0;
-$max_attempts = 5;
+$max_attempts = 3;
 $RESULT = '{"url":"' . $url . '","duration":"n/a","size":"n/a"}';
 $valuesOK = FALSE;
 
@@ -48,7 +48,7 @@ while (!$valuesOK AND $attempt < $max_attempts) {
     // increment + pause - if values are not ok:
     if (!$valuesOK) {
         $attempt++;
-        usleep(rand(99, 222));
+        usleep(rand(50, 100));
     }
 }
 

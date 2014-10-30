@@ -12,7 +12,7 @@
 
 class ProjectListener extends Service
 {
-    private $dbo;
+    private $dbo, $crawlingDomains, $allProjects;
 
     /**
      * do some sets:
@@ -21,6 +21,7 @@ class ProjectListener extends Service
     {
         // init db:
         $this->dbo = new MySQL();
+        $this->crawlingDomains = array();
 
         Standards::debug(__CLASS__ . ' (parent thread) is: ' . $this->getPID());
     }
@@ -28,10 +29,10 @@ class ProjectListener extends Service
     /**
      * @return array|bool
      */
-    private function newProjects()
+    private function getAllProjects()
     {
-        $q = 'SELECT * FROM _sitemap_domain_info WHERE status=0';
-        return $this->dbo->getResults($q);
+        $q = 'SELECT * FROM _sitemap_domain_info';
+        $this->allProjects = $this->dbo->getResults($q);
     }
 
     /**
@@ -100,16 +101,33 @@ class ProjectListener extends Service
         return true;
     }
 
+    /**
+     * @return array|bool
+     */
+    private function areNewProjects()
+    {
+        $newOnes = false;
+        foreach ($this->allProjects as $c_no => $info) {
+            if ($info['status'] == 0 OR !isset($this->crawlingDomains[$info['domain_name']])) {
+                $newOnes[] = $info;
+            }
+        }
+
+        return $newOnes;
+    }
+
     public function doWork()
     {
         $RUN = TRUE;
         while ($RUN == TRUE) {
             /* if there are new projects: */
-            $newOnes = $this->newProjects();
+            $this->getAllProjects();
+            $toCrawl = $this->areNewProjects();
+
             //Standards::debug($newOnes, Standards::DO_EXIT);
 
-            if ($newOnes !== FALSE) {
-                foreach ($newOnes as $d_id => $info) {
+            if ($toCrawl !== FALSE) {
+                foreach ($toCrawl as $d_id => $info) {
                     $params = array(
                         'url' => $info['project_url'],
                         'domain_id' => $info['id'],
@@ -117,11 +135,17 @@ class ProjectListener extends Service
 
                     /* run sub-services */
                     # 'waitable' data:
-                    $this->runService('WhoIs', $params);
-                    $this->runService('RobotsFile', $params);
+                    if ($info['server_ip'] == '') {
+                        $this->runService('WhoIs', $params);
+                        $this->runService('RobotsFile', $params);
+                    }
 
                     # 'non-waitable' data:
-                    $this->runService('CrawlProject', $params);
+                    //$this->runService('CrawlProject', $params);
+                    $this->runService('ApiData', $params);
+
+                    # keep track of the 'crawled' domain:
+                    $this->crawlingDomains[$info['domain_name']] = '';
                 }
 
                 # wait for 'waitable' services:
@@ -131,16 +155,17 @@ class ProjectListener extends Service
                 $collected = $this->getDataCollected();
                 $this->saveCollectedData();
 
+                # debug:
                 /*Standards::debug('saved data:');
                 Standards::debug($collected);*/
             } else {
-                Standards::debug('no new projects');
+                Standards::debug('no new projects. no work to do?!');
             }
 
             // ...
             Standards::debug('temporary exit!', Standards::DO_EXIT);
-            Standards::doPause($this->serviceName, 1);
-            $RUN = false;
+            Standards::doPause('pause: ' . $this->serviceName, 1);
+            //$RUN = false;
         }
     }
 }

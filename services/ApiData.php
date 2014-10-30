@@ -2,30 +2,18 @@
 
 class ApiData extends Service
 {
-    private $curl, $external_links, $arguments;
+    private $curl, $arguments, $domain_id, $dbo, $external_links, $urls;
+    CONST MAX_LINKS = 5, CURRENT_STATUS = 1, NEW_STATUS = 2, SECONDS_PAUSE = 1;
 
     /**
      * [!IMPORTANT] $arguments is an array of arrays holding links to be parsed and another needed information
      * @param array $arguments
      */
-    public function doSets(array $arguments = array('domain_id' => '', 'urls' => array()))
+    public function doSets(array $arguments = array('domain_id' => ''))
     {
         $this->arguments = $arguments;
-
-        if (!isset($arguments['urls']) OR !is_array($arguments['urls'])) {
-            Standards::debug(__CLASS__ . ': expects arguments to hold an array of urls.', Standards::DO_EXIT);
-        }
-
-        $this->external_links = array();
-        foreach ($arguments['urls'] as $a_no => $info) {
-            $temp = array(
-                'majestic_' . $a_no => Config::getApiLink('majestic', $info['url']),
-                'uclassify_read_' . $a_no => Config::getApiLink('uclassify_read', $info['url']),
-                'phantom_' . $a_no => Config::getConfessLink($info['url']),
-            );
-
-            $this->external_links = array_merge($this->external_links, $temp);
-        }
+        $this->domain_id = $arguments['domain_id'];
+        $this->dbo = new MySQL();
     }
 
     /**
@@ -33,13 +21,54 @@ class ApiData extends Service
      */
     public function doWork()
     {
-        // do the actual curl:
-        $this->curl = new Curl();
-        $this->curl->addLinks($this->external_links);
-        $this->curl->run();
+        $RUN = true;
+        while ($RUN !== false) {
+            $this->urls = $this->getProjectLinks();
 
-        // parse body's for needed data:
-        $this->parseApiData();
+            if ($this->urls === FALSE) {
+                $RUN = false;
+            } else {
+                //
+                $this->external_links = array();
+                foreach ($this->urls as $a_no => $info) {
+                    $temp = array(
+                        'majestic_' . $info['id'] => Config::getApiLink('majestic', $info['page_url']),
+                        'uclassify_read_' . $info['id'] => Config::getApiLink('uclassify_read', $info['page_url']),
+                        'phantom_' . $info['id'] => Config::getConfessLink($info['page_url']),
+                    );
+
+                    $this->external_links = array_merge($this->external_links, $temp);
+                }
+
+                // do the actual curl:
+                $this->curl = new Curl();
+                $this->curl->addLinks($this->external_links);
+                $this->curl->run();
+
+                // parse body's for needed data:
+                $this->parseApiData();
+
+                # save data:
+                $this->saveData();
+                Standards::doPause('ApiData', static::SECONDS_PAUSE);
+            }
+        }
+    }
+
+    private function saveData()
+    {
+        print_r($this->dataCollected);
+        foreach ($this->dataCollected as $link_id => $info) {
+
+        }
+
+        exit();
+    }
+
+    private function getProjectLinks()
+    {
+        $q = 'SELECT * FROM _sitemap_links WHERE domain_id=' . $this->domain_id . ' AND parsed_status=' . static::CURRENT_STATUS . ' LIMIT ' . static::MAX_LINKS;
+        return $this->dbo->getResults($q);
     }
 
     private function parseApiData()
@@ -59,7 +88,7 @@ class ApiData extends Service
                         $total = $arr['DataTables']['BackLinks']['Headers']['TotalBackLinks'];
                     }
 
-                    $this->dataCollected[$match][$this->arguments['urls'][$link_no]['link_id']] = $total;
+                    $this->dataCollected[$this->urls[$link_no]['id']]['sentimental'] = $total;
                     break;
                 case 'uclassify':
                     $xml = simplexml_load_string($content);
@@ -80,19 +109,23 @@ class ApiData extends Service
                         }
                     }
 
-                    $this->dataCollected[$match][$this->arguments['urls'][$link_no]['link_id']] = $save;
+                    $this->dataCollected[$this->urls[$link_no]['id']]['negative'] = $save['negative'];
+                    $this->dataCollected[$this->urls[$link_no]['id']]['positive'] = $save['positive'];
                     break;
                 case 'phantom':
                     $temp = json_decode($content, true);
+                    var_dump($temp);
                     if (!is_array($temp)) {
                         $temp = array(
-                            'url' => $this->arguments['urls'][$link_no]['url'],
+                            'url' => $this->urls[$link_no]['page_url'],
                             'duration' => 'n/a',
                             'size' => 'n/a',
                         );
                     }
 
-                    $this->dataCollected[$match][$this->arguments['urls'][$link_no]['link_id']] = $temp;
+                    $this->dataCollected[$this->urls[$link_no]['id']]['page_weight'] = $temp['size'];
+                    $this->dataCollected[$this->urls[$link_no]['id']]['load_time'] = $temp['duration'];
+                    $this->dataCollected[$this->urls[$link_no]['id']]['ignore_it'] = $temp['url'];
                     break;
             }
         }
