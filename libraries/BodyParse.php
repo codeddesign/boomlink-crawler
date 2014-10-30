@@ -748,7 +748,7 @@ class BodyParse
     private function countLinks($type = '')
     {
         $total = 0;
-        if (!isset($this->collected['linkDat'][$type])) {
+        if (!isset($this->collected['linkData'][$type])) {
             return $total;
         }
 
