@@ -51,8 +51,20 @@ $q = 'INSERT INTO _sitemap_domain_info (project_title, domain_name, project_url,
 $domain_id = $db->runQuery($q);
 
 // save main link:
-$q = 'INSERT INTO _sitemap_links (domain_id, page_url) VALUES (\'' . $domain_id . '\', \'' . $clean_url . '\')';
-$link_id = $db->runQuery($q);
+if (isset($_POST['links']) AND strlen(trim($_POST['links'])) > 0) {
+    $values = array();
+    $lines = explode("\n", $_POST['links']);
+    foreach ($lines as $l_num => $line) {
+        $line = trim($line);
+        $values[] = '(\'' . $domain_id . '\', \'' . $line . '\')';
+    }
 
-HERE:
+    $q = 'INSERT INTO _sitemap_links (domain_id, page_url) VALUES ';
+    $q .= implode(',', $values);
+    $db->runQuery($q);
+} else {
+    $q = 'INSERT INTO _sitemap_links (domain_id, page_url) VALUES (\'' . $domain_id . '\', \'' . $clean_url . '\')';
+    $link_id = $db->runQuery($q);
+}
+
 header('Location: index.php?msg=1');

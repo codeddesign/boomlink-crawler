@@ -17,5 +17,16 @@
     </select>
     <input type="text" placeholder="project's title" name="project_title">
     <input type="text" placeholder="main url" name="url">
-    <input type="submit" value="ADD">
+
+    <h4>Alternative: Add here specific links to be crawled in this project</h4>
+    <textarea name="links" rows="30" cols="70"></textarea><br/>
+    <span style="font-weight: bold;">
+            *You still need to add/select the rest of the information.<br/>
+            *It is recommended to have depth = 1<br/>
+            *The main page link will be ignored<br/>
+            <b><u>*One link per line</u></b>
+    </span>
+    <br/><BR/>
+    <input type="submit" value="CREATE PROJECT">
+
 </form>
