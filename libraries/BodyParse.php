@@ -255,7 +255,11 @@ class BodyParse
             $node = $node->item(0);
         }
 
-        $pageTitle = Standards::getBodyText($node->nodeValue);
+        if (is_object($node->nodeValue)) {
+            $pageTitle = Standards::getBodyText($node->nodeValue);
+        } else {
+            $pageTitle = Standards::$default;
+        }
 
         $this->collected['pageTitle'] = $pageTitle;
         return $pageTitle;

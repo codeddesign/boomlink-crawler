@@ -62,7 +62,11 @@ class CrawlProject extends Service
                         ),*/
                     );
 
-                    $nextLinks = $bp->getCrawlableOnes(($l_no + 1));
+                    # avoid getting lists over the maxDepth;
+                    $depth = ($un_parsed[$l_no]['depth'] + 1);
+                    if ($depth <= $this->project_config['maxDepth']) {
+                        $nextLinks = $bp->getCrawlableOnes($depth);
+                    }
                 }
             }
 
@@ -77,6 +81,8 @@ class CrawlProject extends Service
             if (count($save) > 0) {
                 $this->saveLinkInfo($save, $un_parsed);
 
+                // determine if there are any already parsed:
+                $nextLinks = $this->filterNotYetParsed($nextLinks);
                 if (count($nextLinks) > 0) {
                     $this->saveNextLinks($nextLinks);
                 }
@@ -99,7 +105,7 @@ class CrawlProject extends Service
      */
     private function getNonParsedLinks()
     {
-        $q = 'SELECT * FROM _sitemap_links WHERE parsed_status=\'' . self::CURRENT_STATUS . '\' AND depth <=' . $this->project_config['maxDepth'] . ' AND domain_id=\'' . $this->domain_id . '\' LIMIT ' . $this->project_config['atOnce'];
+        $q = 'SELECT * FROM _sitemap_links WHERE parsed_status=' . self::CURRENT_STATUS . ' AND depth <= ' . $this->project_config['maxDepth'] . ' AND domain_id=' . $this->domain_id . ' LIMIT ' . $this->project_config['atOnce'];
         return $this->dbo->getResults($q);
     }
 
@@ -180,14 +186,54 @@ class CrawlProject extends Service
         return $this->dbo->runQuery($q);
     }
 
-    private function saveNextLinks(array $save)
+    /**
+     * @param array $nextLinks
+     * @return mixed
+     */
+    private function saveNextLinks(array $nextLinks)
     {
         $values = array();
-        foreach ($save as $link => $info) {
+        foreach ($nextLinks as $link => $info) {
             $values[] = '(' . $this->domain_id . ', \'' . $link . '\', \'' . $info['depth'] . '\', \'' . addslashes($info['href']) . '\')';
         }
 
         $q = 'INSERT INTO _sitemap_links (domain_id, page_url, depth, href) VALUES ' . implode(', ', $values);
         return $this->dbo->runQuery($q);
+    }
+
+
+    /**
+     * @param array $nextLinks
+     * @return array
+     */
+    private function filterNotYetParsed(array $nextLinks)
+    {
+        if (count($nextLinks) == 0) {
+            return $nextLinks;
+        }
+
+        $all = array();
+        foreach ($nextLinks as $link => $null) {
+            $all = array_merge($all, Standards::generatePossibleLinks($link));
+        }
+
+        foreach ($all as $a_no => $link) {
+            $all[$a_no] = '\'' . $link . '\'';
+        }
+
+        $q = 'SELECT id, page_url FROM _sitemap_links WHERE page_url IN(' . implode(',', $all) . ')';
+        $r = $this->dbo->getResults($q);
+
+        if ($r == FALSE) {
+            return $nextLinks;
+        } else {
+            foreach ($r as $r_no => $info) {
+                if (isset($nextLinks[$info['page_url']])) {
+                    unset($nextLinks[$info['page_url']]);
+                }
+            }
+        }
+
+        return $nextLinks;
     }
 }

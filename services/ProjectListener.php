@@ -117,8 +117,8 @@ class ProjectListener extends Service
 
                     /* run sub-services */
                     # 'waitable' data:
-                    //$this->runService('WhoIs', $params);
-                    //$this->runService('RobotsFile', $params);
+                    $this->runService('WhoIs', $params);
+                    $this->runService('RobotsFile', $params);
 
                     # 'non-waitable' data:
                     $this->runService('CrawlProject', $params);
@@ -131,8 +131,8 @@ class ProjectListener extends Service
                 $collected = $this->getDataCollected();
                 $this->saveCollectedData();
 
-                Standards::debug('saved data:');
-                Standards::debug($collected);
+                /*Standards::debug('saved data:');
+                Standards::debug($collected);*/
             } else {
                 Standards::debug('no new projects');
             }

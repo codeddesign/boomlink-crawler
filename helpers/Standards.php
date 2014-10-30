@@ -331,7 +331,6 @@ class Standards
      */
     public static function doDelay($milliseconds = FALSE)
     {
-        return false;
         if (!$milliseconds) {
             $milliseconds = rand(100, 300);
         }
@@ -368,5 +367,35 @@ class Standards
         if ($exit) {
             exit(-1);
         }
+    }
+
+    /**
+     * @param $link
+     * @return array
+     */
+    public static function generatePossibleLinks($link)
+    {
+        //get domain:
+        $host = self::getHost($link);
+
+        //get rest of the link after domain:
+        $rest = substr($link, stripos($link, $host) + strlen($host));
+
+        $patterns = array(
+            "http://%s%s", "http://www.%s%s", "https://%s%s", "https://www.%s%s",
+            "http://%s%s/", "http://www.%s%s/", "https://%s%s/", "https://www.%s%s/",
+        );
+
+        $links = array();
+        for ($i = 0; $i < count($patterns); $i++) {
+            $temp = sprintf($patterns[$i], $host, $rest);
+            if (strrpos($temp, "//") == strlen($temp) - 2) {
+                $temp = substr($temp, 0, strrpos($temp, "//"));
+            }
+
+            $links[] = $temp;
+        }
+
+        return $links;
     }
 }

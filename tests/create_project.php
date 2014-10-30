@@ -12,8 +12,8 @@ $rules = array(
 
 $project = array(
     // new:
-    'project_title' => 'some title',
-    'url' => 'http://codeddesign.org',
+    'project_title' => 'ran-x',
+    'url' => 'http://ran.de',
     'config' => json_encode($rules, true),
 );
 $domain = Standards::getHost($project['url']);
