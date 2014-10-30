@@ -72,11 +72,13 @@ class CrawlProject extends Service
                 }
             }
 
-            if(count($save) > 0) {
+            if (count($save) > 0) {
+                $this->saveLinkInfo($save, $un_parsed);
 
+                if (count($nextLinks) > 0) {
+                    print_r($nextLinks);
+                }
             }
-            print_r($save);
-            print_r($nextLinks);
             exit;
             # do pause:
             Standards::doPause($this->serviceName, 2);
@@ -114,5 +116,52 @@ class CrawlProject extends Service
         }
 
         return false;
+    }
+
+
+    /**
+     * @param array $saveData
+     * @param $current_links
+     * @return mixed
+     */
+    private function saveLinkInfo(array $saveData, $current_links)
+    {
+        // build up table keys:
+        $once = false;
+        $tableKeys = array();
+        foreach ($saveData as $l_no => $info) {
+            if (!$once) {
+                $tableKeys['link_id'] = 0;
+
+                $i = 1;
+                foreach ($info['links_info'] as $key => $value) {
+                    if (!isset($tableKeys[$key])) {
+                        $tableKeys[$key] = $i;
+                        $i++;
+                    }
+                }
+                $once = true;
+            }
+        }
+        $tableKeys = array_flip($tableKeys);
+
+        // create values:
+        $values = array();
+        $i = 0;
+        foreach ($saveData as $l_no => $info) {
+            foreach ($info['links_info'] as $key => $value) {
+                if (!isset($values[$i])) {
+                    $values[$i] = '(' . $current_links[$l_no]['id'] . ', ';
+                }
+
+                $values[$i] .= sprintf('\'%s\', ', addslashes($value));
+            }
+
+            $values[$i] = substr($values[$i], 0, strrpos($values[$i], ',')) . ')';
+            $i++;
+        }
+
+        $q = 'INSERT INTO _sitemap_links_info (' . implode(', ', $tableKeys) . ') VALUES ' . implode(',', $values);
+        return $this->dbo->runQuery($q);
     }
 }
