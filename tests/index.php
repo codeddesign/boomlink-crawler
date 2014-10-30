@@ -6,8 +6,6 @@
         <OPTION VALUE="3">3</OPTION>
         <OPTION VALUE="5">5</OPTION>
         <OPTION VALUE="10">10</OPTION>
-        <OPTION VALUE="4">4</OPTION>
-        <OPTION VALUE="5">5</OPTION>
     </select>
     <select name="maxDepth">
         <option value="0">depth</option>
