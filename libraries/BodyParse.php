@@ -749,6 +749,8 @@ class BodyParse
         return $total;
     }
 
+    /* GET DATA FOR EACH TABLE METHODS */
+
     /**
      * @return array
      */
@@ -773,17 +775,50 @@ class BodyParse
             'server_config' => implode(';', $this->getServerConfig()),
 
             // fetched by others:
-            'load_time' => '',
-            'page_weight' => '',
-            'indexed_bing' => '',
-            'indexed_google' => '',
-            'density' => '',
+            'load_time' => Standards::$default,
+            'page_weight' => Standards::$default,
+            'indexed_bing' => Standards::$default,
+            'indexed_google' => Standards::$default,
+            'density' => Standards::$default,
 
             // defaults, not handled:
-            'cached' => '',
-            'page_trackers' => '',
+            'cached' => Standards::$default,
+            'page_trackers' => Standards::$default,
 
         );
+    }
+
+    /**
+     * @param $type
+     * @return array
+     */
+    public function getSpecificLinks($type)
+    {
+        $save = array();
+        foreach ($this->collected['linkData'][$type] as $l_no => $info) {
+            $save[$info['href']] = Standards::json_encode_special(str_ireplace("\r", "", $info['textContent']));
+        }
+
+        return $save;
+    }
+
+
+    /**
+     * @param int $depth
+     * @return mixed
+     */
+    public function getCrawlableOnes($depth = 0)
+    {
+        if (!isset($this->collected['crawlableLinks'])) {
+            $this->getFilteredInternalLinksOnly();
+        }
+
+        $c = $this->collected['crawlableLinks'];
+        foreach ($c as $link => $null) {
+            $c[$link] = $depth;
+        }
+
+        return $c;
     }
 
     public function viewAllData()

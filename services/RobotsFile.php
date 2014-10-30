@@ -21,7 +21,7 @@ class RobotsFile extends Service
      */
     public function doWork()
     {
-        $curl = new Curl();
+        $curl = new Curl(false);
         $curl->addLinks($this->getRobotsLink());
         $curl->run();
 

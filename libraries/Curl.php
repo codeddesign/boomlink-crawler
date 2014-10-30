@@ -2,14 +2,18 @@
 
 class Curl
 {
-    private $curl_config, $curl_sets, $content, $header, $links, $link_info, $parsedCurlInfo;
+    private $curl_config, $curl_sets, $content, $header, $links, $link_info, $parsedCurlInfo, $multi;
+
 
     /**
+     * @param bool $multi
      * @param array $opts
      * * available $opts => (BOOL follow, BOOL header, NULL|STRING proxy, INT timeout [seconds], STRING agent)
      */
-    function __construct(array $opts = array())
+    function __construct($multi = true, array $opts = array())
     {
+        $this->multi = $multi;
+
         // sets:
         $this->links = $this->link_info = NULL;
         $this->parsedCurlInfo = array();
@@ -195,7 +199,7 @@ class Curl
      */
     public function getBodyOnly()
     {
-        if (count($this->content) == 1) {
+        if (count($this->content) == 1 AND !$this->multi) {
             $temp = array_values($this->content);
             return $temp[0];
         } else {
@@ -236,7 +240,7 @@ class Curl
             }
         }
 
-        if (count($info) == 1) {
+        if (count($info) == 1 AND !$this->multi) {
             $this->parsedCurlInfo = $info[key($info)];
             return $info[key($info)];
         }
