@@ -55,7 +55,6 @@ class ApiData extends Service
                 $this->saveData();
                 $this->updateStatus();
                 Standards::doPause('ApiData', static::SECONDS_PAUSE);
-                exit('fin.');
             }
         }
     }
