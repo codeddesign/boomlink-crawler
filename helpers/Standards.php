@@ -101,9 +101,11 @@ class Standards
     {
         $string = trim($string);
         if (preg_match('/([\d]T[\d])/', $string, $matched) !== false) {
-            $string = str_replace($matched[1][0] . 'T', $matched[1][0] . ' ', $string);
-            $parts = explode(' ', $string);
-            return $parts[0];
+            if (isset($matched[1][0])) {
+                $string = str_replace($matched[1][0] . 'T', $matched[1][0] . ' ', $string);
+                $parts = explode(' ', $string);
+                return $parts[0];
+            }
         }
 
         return $string;

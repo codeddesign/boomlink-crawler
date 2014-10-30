@@ -255,7 +255,7 @@ class BodyParse
             $node = $node->item(0);
         }
 
-        if (is_object($node->nodeValue)) {
+        if (is_object($node)) {
             $pageTitle = Standards::getBodyText($node->nodeValue);
         } else {
             $pageTitle = Standards::$default;
@@ -605,6 +605,10 @@ class BodyParse
 
         //..
         $links = array();
+        if (!isset($this->collected['linkData']['internal'])) {
+            return $links;
+        }
+
         foreach ($this->collected['linkData']['internal'] as $a_no => $a) {
             if (isset($a['href'])) {
                 $links[$a['href']] = Standards::json_encode_special(str_ireplace("\r", "", $a['textContent']));;
@@ -744,6 +748,10 @@ class BodyParse
     private function countLinks($type = '')
     {
         $total = 0;
+        if (!isset($this->collected['linkDat'][$type])) {
+            return $total;
+        }
+        
         foreach ($this->collected['linkData'][$type] as $l_no => $link) {
             if (isset($link['textContent'])) {
                 $total += count($link['textContent']);
@@ -762,7 +770,7 @@ class BodyParse
     {
         return array(
             'page_title' => $this->getPageTitle(),
-            'description' => (isset($this->collected['metaData']['description'])) ? $this->collected['metaData']['description'] : Standards::$default,
+            'description' => trim((isset($this->collected['metaData']['description'])) ? $this->collected['metaData']['description'] : Standards::$default),
             'content_language' => $this->getLanguage(),
             'external_links' => $this->countLinks('external'),
             'internal_links' => $this->countLinks('internal'),
