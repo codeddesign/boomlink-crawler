@@ -68,6 +68,10 @@ class ProxyData extends Service
      */
     public function doWork()
     {
+        # get proxies
+        $this->proxies = $this->getProxies();
+
+        # loop:
         $RUN = true;
         $i = 0;
         while ($RUN) {
@@ -75,9 +79,20 @@ class ProxyData extends Service
             if (!$un_parsed) {
                 $RUN = false;
             } else {
-                $this->proxies = $this->getProxies();
-                $useProxy = $this->proxies[$i];
+                //
+                if (!isset($this->proxies[$i])) {
+                    # resets:
+                    $i = 0;
+                    Standards::doPause('ProxyData', 60 * 30); // 30min
 
+                    # update proxies:
+                    $this->proxies = $this->getProxies();
+                } else {
+                    $useProxy = $this->proxies[$i];
+                    $i++;
+                }
+
+                # info: right now $un_parsed contains only one link;
                 foreach ($un_parsed as $l_no => $info) {
                     $this->link_id = $info['id'];
                     $link = $info['page_url'];
@@ -109,16 +124,10 @@ class ProxyData extends Service
 
                     # update status:
                     $this->updateStatus();
-                }
-            }
 
-            if (!isset($this->proxies[$i])) {
-                $i = 0;
-                Standards::doPause('ProxyData', 60 * 30); // 30min
-            } else {
-                $i++;
-                # make small delay:
-                Standards::doDelay(rand(100, 300));
+                    # make small delay:
+                    Standards::doDelay(rand(100, 300));
+                }
             }
         }
     }
