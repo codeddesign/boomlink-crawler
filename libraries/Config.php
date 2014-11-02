@@ -7,7 +7,8 @@
 
 class Config
 {
-    private static $api_keys = array(
+    # api settings:
+    private static $apiKeys = array(
         'majestic' => array(
             'key' => 'CF2C61AFBE51F1A8B3E0947073C0D3D5',
             'pattern' => 'http://api.majestic.com/api/json?app_api_key=%s&cmd=GetBackLinkData&item=%s&Count=0&datasource=fresh'
@@ -18,6 +19,12 @@ class Config
         ),
     );
 
+    # local link that runs confess through phantomjs
+    private static $runConfessPattern = 'http://localhost/%s/scripts/run_confess.php?url=%s';
+
+    # generic crawler's progress status for data updates:
+    const CURRENT_STATUS = 0, NEW_STATUS = 1;
+
     /**
      * @param $keyName
      * @param $url
@@ -25,11 +32,11 @@ class Config
      */
     public static function getApiLink($keyName, $url)
     {
-        if (!isset(self::$api_keys[$keyName])) {
+        if (!isset(self::$apiKeys[$keyName])) {
             Standards::debug('Exit: config key \'' . $keyName . '\' does not exist.', Standards::DO_EXIT);
         }
 
-        $info = self::$api_keys[$keyName];
+        $info = self::$apiKeys[$keyName];
         return sprintf($info['pattern'], $info['key'], $url);
     }
 
@@ -40,7 +47,7 @@ class Config
     public static function getConfessLink($url)
     {
         $replace = array(
-            '/8win/',
+            '/8win/', # needed for local dev environment
             '/var/www/html/',
             '/var/www/',
             '/services',
@@ -49,6 +56,6 @@ class Config
 
         $path = str_ireplace($replace, '', __DIR__);
 
-        return 'http://localhost/' . $path . '/scripts/run_confess.php?url=' . $url;
+        return sprintf(self::$runConfessPattern, $path, $url);
     }
 } 

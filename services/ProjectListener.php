@@ -94,7 +94,8 @@ class ProjectListener extends Service
 
         // pre-check if any values:
         if (count($values) > 0) {
-            $q = 'INSERT INTO _sitemap_domain_info (' . implode(', ', $tableKeys) . ') VALUES ' . implode(', ', $values) . ' ON DUPLICATE KEY UPDATE ' . implode(', ', $updateKeys);
+            $pattern = 'INSERT INTO _sitemap_domain_info (%s) VALUES %s ON DUPLICATE KEY UPDATE %s';
+            $q = sprintf($pattern, implode(',', $tableKeys), implode(',', $values), implode(',', $updateKeys));
             $this->dbo->runQuery($q);
         }
 
@@ -125,6 +126,7 @@ class ProjectListener extends Service
     {
         # RUN: parallel sub-service ProxyData:
         $this->runService('ProxyData', array());
+        $this->runService('PhantomData', array());
 
         // rest of logic:
         $RUN = TRUE;
@@ -161,12 +163,8 @@ class ProjectListener extends Service
                 $this->waitForFinish();
 
                 # save data if any:
-                $collected = $this->getDataCollected();
+                $this->getDataCollected();
                 $this->saveCollectedData();
-
-                # debug:
-                /*Standards::debug('saved data:');
-                Standards::debug($collected);*/
             } else {
                 Standards::debug('no new projects. no work to do?!');
             }

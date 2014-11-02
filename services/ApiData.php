@@ -2,8 +2,8 @@
 
 class ApiData extends Service
 {
-    private $curl, $arguments, $domain_id, $dbo, $external_links, $urls, $link_ids;
-    CONST MAX_LINKS = 5, CURRENT_STATUS = 0, NEW_STATUS = 1, SECONDS_PAUSE = 1;
+    private $arguments, $domain_id, $dbo, $external_links, $urls, $link_ids;
+    CONST MAX_LINKS = 5, SECONDS_PAUSE = 1;
 
     /**
      * [!IMPORTANT] $arguments is an array of arrays holding links to be parsed and another needed information
@@ -37,16 +37,15 @@ class ApiData extends Service
                     $temp = array(
                         'majestic_' . $info['id'] => Config::getApiLink('majestic', $info['page_url']),
                         'uclassify_read_' . $info['id'] => Config::getApiLink('uclassify_read', $info['page_url']),
-                        'phantom_' . $info['id'] => Config::getConfessLink($info['page_url']),
                     );
 
                     $this->external_links = array_merge($this->external_links, $temp);
                 }
 
                 // do the actual curl:
-                $this->curl = new Curl();
-                $this->curl->addLinks($this->external_links);
-                $this->curl->run();
+                $curl = new Curl();
+                $curl->addLinks($this->external_links);
+                $curl->run();
 
                 // parse body's for needed data:
                 $this->parseApiData();
@@ -54,7 +53,7 @@ class ApiData extends Service
                 # save data:
                 $this->saveData();
                 $this->updateStatus();
-                Standards::doPause('ApiData', static::SECONDS_PAUSE);
+                Standards::doPause('ApiData', self::SECONDS_PAUSE);
             }
         }
     }
@@ -68,7 +67,8 @@ class ApiData extends Service
             return false;
         }
 
-        $q = 'UPDATE _sitemap_links SET api_data_status=' . static::NEW_STATUS . ' WHERE id IN (' . implode(',', $this->link_ids) . ')';
+        $pattern = 'UPDATE _sitemap_links SET api_data_status=%d WHERE id IN (%s)';
+        $q = sprintf($pattern, Config::NEW_STATUS, implode(',', $this->link_ids));
         return $this->dbo->runQuery($q);
     }
 
@@ -85,12 +85,12 @@ class ApiData extends Service
         $pattern = '(%s, \'%s\', \'%s\', \'%s\', \'%s\', \'%s\')';
         $values = array();
         foreach ($this->dataCollected as $link_id => $info) {
-            $values[] = sprintf($pattern, $link_id, $info['sentimental'], $info['negative'], $info['positive'], $info['page_weight'], $info['load_time']);
+            $values[] = sprintf($pattern, $link_id, $info['sentimental'], $info['negative'], $info['positive']);
         }
 
         // prepare update keys:
         $patternKeys = '%s=VALUES(%s)';
-        $tableKeys = array('link_id', 'sentimental', 'negative', 'positive', 'page_weight', 'load_time');
+        $tableKeys = array('link_id', 'sentimental', 'negative', 'positive');
         $updateKeys = array();
         foreach ($tableKeys as $k_no => $key) {
             if ($key !== 'link_id') {
@@ -98,16 +98,18 @@ class ApiData extends Service
             }
         }
 
-        $q = 'INSERT INTO _sitemap_links_info (' . implode(',', $tableKeys) . ') VALUES ';
-        $q .= implode(',', $values) . ' ';
-        $q .= 'ON DUPLICATE KEY UPDATE ' . implode(', ', $updateKeys);
-
+        $pattern = 'INSERT INTO _sitemap_links_info (%s) VALUES %s ON DUPLICATE KEY UPDATE %s';
+        $q = sprintf($pattern, implode(',', $tableKeys), implode(',', $values), implode(',', $updateKeys));
         return $this->dbo->runQuery($q);
     }
 
+    /**
+     * @return mixed
+     */
     private function getProjectLinks()
     {
-        $q = 'SELECT * FROM _sitemap_links WHERE domain_id=' . $this->domain_id . ' AND api_data_status=' . static::CURRENT_STATUS . ' LIMIT ' . static::MAX_LINKS;
+        $pattern = 'SELECT * FROM _sitemap_links WHERE domain_id=%d AND api_data_status=%d LIMIT %d';
+        $q = sprintf($pattern, $this->domain_id, Config::CURRENT_STATUS, self::MAX_LINKS);
         return $this->dbo->getResults($q);
     }
 
@@ -151,20 +153,6 @@ class ApiData extends Service
 
                     $this->dataCollected[$link_id]['negative'] = $save['negative'];
                     $this->dataCollected[$link_id]['positive'] = $save['positive'];
-                    break;
-                case 'phantom':
-                    $temp = json_decode($content, true);
-                    if (!is_array($temp)) {
-                        $temp = array(
-                            'url' => $this->urls[$link_id]['page_url'],
-                            'duration' => 'n/a',
-                            'size' => 'n/a',
-                        );
-                    }
-
-                    $this->dataCollected[$link_id]['page_weight'] = $temp['size'];
-                    $this->dataCollected[$link_id]['load_time'] = $temp['duration'];
-                    $this->dataCollected[$link_id]['ignore_it'] = $temp['url'];
                     break;
             }
         }

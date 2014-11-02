@@ -7,7 +7,6 @@
 class CrawlProject extends Service
 {
     private $domain_id, $dbo, $project_config, $robots_file, $robots_rules;
-    CONST NEW_STATUS = 1, CURRENT_STATUS = 0;
 
     public function doSets($arguments = array('domain_id'))
     {
@@ -105,7 +104,8 @@ class CrawlProject extends Service
      */
     private function getNonParsedLinks()
     {
-        $q = 'SELECT * FROM _sitemap_links WHERE parsed_status=' . self::CURRENT_STATUS . ' AND depth <= ' . $this->project_config['maxDepth'] . ' AND domain_id=' . $this->domain_id . ' LIMIT ' . $this->project_config['atOnce'];
+        $pattern = 'SELECT * FROM _sitemap_links WHERE parsed_status=%d AND depth <= %d AND domain_id=%d LIMIT %d';
+        $q = sprintf($pattern, Config::CURRENT_STATUS, $this->project_config['maxDepth'], $this->domain_id, $this->project_config['atOnce']);
         return $this->dbo->getResults($q);
     }
 
@@ -114,7 +114,8 @@ class CrawlProject extends Service
      */
     private function getProjectRules()
     {
-        $q = 'SELECT config, robots_file FROM _sitemap_domain_info WHERE id=\'' . $this->domain_id . '\'';
+        $pattern = 'SELECT config, robots_file FROM _sitemap_domain_info WHERE id=%d';
+        $q = sprintf($pattern, $this->domain_id);
         $r = $this->dbo->getResults($q);
         if (count($r) > 0) {
             $this->project_config = json_decode($r[0]['config'], TRUE);
@@ -133,7 +134,8 @@ class CrawlProject extends Service
     private function updateLinksByIds(array $updateIds)
     {
         if (count($updateIds) > 0) {
-            $q = 'UPDATE _sitemap_links SET parsed_status=\'' . static::NEW_STATUS . '\' WHERE id IN (' . implode(',', $updateIds) . ')';
+            $pattern = 'UPDATE _sitemap_links SET parsed_status=%d WHERE id IN (%s)';
+            $q = sprintf($pattern, Config::NEW_STATUS, implode(',', $updateIds));
             return $this->dbo->runQuery($q);
         }
 
@@ -182,7 +184,8 @@ class CrawlProject extends Service
             $i++;
         }
 
-        $q = 'INSERT INTO _sitemap_links_info (' . implode(', ', $tableKeys) . ') VALUES ' . implode(',', $values);
+        $pattern = 'INSERT INTO _sitemap_links_info (%s) VALUES %s';
+        $q = sprintf($pattern, implode(',', $tableKeys), implode(',', $values));
         return $this->dbo->runQuery($q);
     }
 
@@ -193,11 +196,13 @@ class CrawlProject extends Service
     private function saveNextLinks(array $nextLinks)
     {
         $values = array();
+        $tableKeys = array('domain_id', 'page_url', 'depth', 'href');
         foreach ($nextLinks as $link => $info) {
             $values[] = '(' . $this->domain_id . ', \'' . $link . '\', \'' . $info['depth'] . '\', \'' . addslashes($info['href']) . '\')';
         }
 
-        $q = 'INSERT INTO _sitemap_links (domain_id, page_url, depth, href) VALUES ' . implode(', ', $values);
+        $pattern = 'INSERT INTO _sitemap_links (%s) VALUES %s';
+        $q = sprintf($pattern, implode(',', $tableKeys), implode(',', $values));
         return $this->dbo->runQuery($q);
     }
 
@@ -221,7 +226,8 @@ class CrawlProject extends Service
             $all[$a_no] = '\'' . $link . '\'';
         }
 
-        $q = 'SELECT id, page_url FROM _sitemap_links WHERE page_url IN(' . implode(',', $all) . ')';
+        $pattern = 'SELECT id, page_url FROM _sitemap_links WHERE page_url IN (%s)';
+        $q = sprintf($pattern, implode(',', $all));
         $r = $this->dbo->getResults($q);
 
         if ($r == FALSE) {

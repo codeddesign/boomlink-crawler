@@ -9,9 +9,8 @@
 class ProxyData extends Service
 {
     private $dbo, $curl, $external_links, $proxies, $link_id;
-    CONST CURRENT_STATUS = 0, NEW_STATUS = 1;
 
-    public function doSets(array $arguments = array())
+    public function doSets($arguments = NULL)
     {
         $this->dbo = new MySQL();
     }
@@ -21,7 +20,8 @@ class ProxyData extends Service
      */
     private function getNonParsedLinks()
     {
-        $q = 'SELECT * FROM _sitemap_links WHERE proxy_data_status=' . self::CURRENT_STATUS . ' LIMIT 1';
+        $pattern = 'SELECT * FROM _sitemap_links WHERE proxy_data_status=%d LIMIT 1';
+        $q = sprintf($pattern, Config::CURRENT_STATUS);
         return $this->dbo->getResults($q);
     }
 
@@ -49,7 +49,8 @@ class ProxyData extends Service
             return false;
         }
 
-        $q = 'UPDATE _sitemap_links_info SET ' . implode(',', $sets) . ' WHERE link_id=' . $this->link_id;
+        $pattern = 'UPDATE _sitemap_links_info SET %s WHERE link_id=%d';
+        $q = sprintf($pattern, implode(', ', $sets), $this->link_id);
         return $this->dbo->runQuery($q);
     }
 
@@ -59,7 +60,8 @@ class ProxyData extends Service
             return false;
         }*/
 
-        $q = 'UPDATE _sitemap_links SET proxy_data_status=' . static::NEW_STATUS . ' WHERE id IN (' . $this->link_id . ')';
+        $pattern = 'UPDATE _sitemap_links SET proxy_data_status=%d WHERE id IN (%s)';
+        $q = sprintf($pattern, Config::NEW_STATUS, $this->link_id);
         return $this->dbo->runQuery($q);
     }
 
@@ -70,6 +72,7 @@ class ProxyData extends Service
     {
         # get proxies
         $this->proxies = $this->getProxies();
+        $useProxy = array();
 
         # loop:
         $RUN = true;
