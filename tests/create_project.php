@@ -22,7 +22,7 @@ function __autoload($className)
 // load time of the script:
 $ld = new LoadTime();
 
-if (!isset($_POST['maxDepth']) OR $_POST['maxDepth'] == '0' OR $_POST['atOnce'] == 0) {
+if (!isset($_POST['atOnce']) OR $_POST['atOnce'] == 0) {
     header('Location: index.php?err=1');
     exit();
 }
