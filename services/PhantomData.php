@@ -3,7 +3,7 @@
 class PhantomData extends Service
 {
     private $dbo, $urls, $link_ids, $external_links, $curl;
-    CONST MAX_LINKS = 4, SECONDS_PAUSE = 1;
+    CONST MAX_LINKS = 1, SECONDS_PAUSE = 1;
 
     function doSets($arguments = array())
     {
