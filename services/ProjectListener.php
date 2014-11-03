@@ -67,8 +67,6 @@ class ProjectListener extends Service
                 # save data if any:
                 $this->getDataCollected();
                 $this->saveCollectedData();
-            } else {
-                Standards::debug('no new projects. no work to do?!');
             }
 
             // ...
