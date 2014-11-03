@@ -31,7 +31,7 @@ class ProjectListener extends Service
      */
     private function getAllProjects()
     {
-        $q = 'SELECT * FROM _sitemap_domain_info';
+        $q = 'SELECT * FROM status_domain';
         $this->allProjects = $this->dbo->getResults($q);
     }
 
@@ -85,7 +85,7 @@ class ProjectListener extends Service
 
         // create update keys:
         $patternKeys = '%s=VALUES(%s)';
-        $tableKeys = array('id', 'robots_file', 'server_ip', 'registration_date', 'server_location', 'hosting_company', 'status');
+        $tableKeys = array('id', 'robots_file', 'server_ip', 'registration_date', 'server_location', 'hosting_company', 'Status');
         foreach ($tableKeys as $k_no => $key) {
             if ($key !== 'id') {
                 $updateKeys[] = sprintf($patternKeys, $key, $key);
@@ -94,7 +94,7 @@ class ProjectListener extends Service
 
         // pre-check if any values:
         if (count($values) > 0) {
-            $pattern = 'INSERT INTO _sitemap_domain_info (%s) VALUES %s ON DUPLICATE KEY UPDATE %s';
+            $pattern = 'INSERT INTO status_domain (%s) VALUES %s ON DUPLICATE KEY UPDATE %s';
             $q = sprintf($pattern, implode(',', $tableKeys), implode(',', $values), implode(',', $updateKeys));
             $this->dbo->runQuery($q);
         }
@@ -114,7 +114,7 @@ class ProjectListener extends Service
         }
 
         foreach ($this->allProjects as $c_no => $info) {
-            if ($info['status'] == 0 OR !isset($this->crawlingDomains[$info['domain_name']])) {
+            if ($info['Status'] == 0 OR !isset($this->crawlingDomains[$info['domain_name']])) {
                 $newOnes[] = $info;
             }
         }
@@ -140,8 +140,8 @@ class ProjectListener extends Service
             if ($toCrawl !== FALSE) {
                 foreach ($toCrawl as $d_id => $info) {
                     $params = array(
-                        'url' => $info['project_url'],
-                        'domain_id' => $info['id'],
+                        'url' => $info['DomainURL'],
+                        'domain_id' => $info['DomainURLIDX'],
                     );
 
                     /* run sub-services */

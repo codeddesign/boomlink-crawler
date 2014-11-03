@@ -35,8 +35,8 @@ class ApiData extends Service
                     $this->link_ids[] = $info['id'];
 
                     $temp = array(
-                        'majestic_' . $info['id'] => Config::getApiLink('majestic', $info['page_url']),
-                        'uclassify_read_' . $info['id'] => Config::getApiLink('uclassify_read', $info['page_url']),
+                        'majestic_' . $info['id'] => Config::getApiLink('majestic', $info['pageURL']),
+                        'uclassify_read_' . $info['id'] => Config::getApiLink('uclassify_read', $info['pageURL']),
                     );
 
                     $this->external_links = array_merge($this->external_links, $temp);
@@ -67,7 +67,7 @@ class ApiData extends Service
             return false;
         }
 
-        $pattern = 'UPDATE _sitemap_links SET api_data_status=%d WHERE id IN (%s)';
+        $pattern = 'UPDATE page_main_info SET api_data_status=%d WHERE id IN (%s)';
         $q = sprintf($pattern, Config::NEW_STATUS, implode(',', $this->link_ids));
         return $this->dbo->runQuery($q);
     }
@@ -90,15 +90,15 @@ class ApiData extends Service
 
         // prepare update keys:
         $patternKeys = '%s=VALUES(%s)';
-        $tableKeys = array('link_id', 'sentimental', 'negative', 'positive');
+        $tableKeys = array('id', 'sentimental', 'negative', 'positive');
         $updateKeys = array();
         foreach ($tableKeys as $k_no => $key) {
-            if ($key !== 'link_id') {
+            if ($key !== 'id') {
                 $updateKeys[] = sprintf($patternKeys, $key, $key);
             }
         }
 
-        $pattern = 'INSERT INTO _sitemap_links_info (%s) VALUES %s ON DUPLICATE KEY UPDATE %s';
+        $pattern = 'INSERT INTO page_main_info (%s) VALUES %s ON DUPLICATE KEY UPDATE %s';
         $q = sprintf($pattern, implode(',', $tableKeys), implode(',', $values), implode(',', $updateKeys));
         return $this->dbo->runQuery($q);
     }

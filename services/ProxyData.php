@@ -20,7 +20,7 @@ class ProxyData extends Service
      */
     private function getNonParsedLinks()
     {
-        $pattern = 'SELECT * FROM _sitemap_links WHERE proxy_data_status=%d LIMIT 1';
+        $pattern = 'SELECT * FROM page_main_info WHERE proxy_data_status=%d LIMIT 1';
         $q = sprintf($pattern, Config::CURRENT_STATUS);
         return $this->dbo->getResults($q);
     }
@@ -49,7 +49,7 @@ class ProxyData extends Service
             return false;
         }
 
-        $pattern = 'UPDATE _sitemap_links_info SET %s WHERE link_id=%d';
+        $pattern = 'UPDATE page_main_info SET %s WHERE id=%d';
         $q = sprintf($pattern, implode(', ', $sets), $this->link_id);
         return $this->dbo->runQuery($q);
     }
@@ -60,7 +60,7 @@ class ProxyData extends Service
             return false;
         }*/
 
-        $pattern = 'UPDATE _sitemap_links SET proxy_data_status=%d WHERE id IN (%s)';
+        $pattern = 'UPDATE page_main_info SET proxy_data_status=%d WHERE id IN (%s)';
         $q = sprintf($pattern, Config::NEW_STATUS, $this->link_id);
         return $this->dbo->runQuery($q);
     }
@@ -98,7 +98,7 @@ class ProxyData extends Service
                 # info: right now $un_parsed contains only one link;
                 foreach ($un_parsed as $l_no => $info) {
                     $this->link_id = $info['id'];
-                    $link = $info['page_url'];
+                    $link = $info['pageURL'];
 
                     $this->external_links = array(
                         // social:

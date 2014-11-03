@@ -24,7 +24,7 @@ class PhantomData extends Service
                 $this->link_ids = array();
                 foreach ($this->urls as $a_no => $info) {
                     $this->link_ids[] = $info['id'];
-                    $this->external_links['phantom_' . $info['id']] = Config::getConfessLink($info['page_url']);
+                    $this->external_links['phantom_' . $info['id']] = Config::getConfessLink($info['pageURL']);
                 }
 
                 // do the actual curl:
@@ -52,7 +52,7 @@ class PhantomData extends Service
             return false;
         }
 
-        $pattern = 'UPDATE _sitemap_links SET phantom_data_status=%d WHERE id IN (%s)';
+        $pattern = 'UPDATE page_main_info SET phantom_data_status=%d WHERE id IN (%s)';
         $q = sprintf($pattern, Config::NEW_STATUS, implode(',', $this->link_ids));
         return $this->dbo->runQuery($q);
     }
@@ -75,15 +75,15 @@ class PhantomData extends Service
 
         // prepare update keys:
         $patternKeys = '%s=VALUES(%s)';
-        $tableKeys = array('link_id', 'page_weight', 'load_time');
+        $tableKeys = array('id', 'page_weight', 'load_time');
         $updateKeys = array();
         foreach ($tableKeys as $k_no => $key) {
-            if ($key !== 'link_id') {
+            if ($key !== 'id') {
                 $updateKeys[] = sprintf($patternKeys, $key, $key);
             }
         }
 
-        $pattern = 'INSERT INTO _sitemap_links_info (%s) VALUES %s ON DUPLICATE KEY UPDATE %s';
+        $pattern = 'INSERT INTO page_main_info (%s) VALUES %s ON DUPLICATE KEY UPDATE %s';
         $q = sprintf($pattern, implode(',', $tableKeys), implode(',', $values), implode(', ', $updateKeys));
         return $this->dbo->runQuery($q);
     }
@@ -93,7 +93,7 @@ class PhantomData extends Service
      */
     private function getProjectLinks()
     {
-        $pattern = 'SELECT * FROM _sitemap_links phantom_data_status=%d LIMIT %d';
+        $pattern = 'SELECT * FROM page_main_info phantom_data_status=%d LIMIT %d';
         $q = sprintf($pattern, Config::CURRENT_STATUS, static::MAX_LINKS);
         return $this->dbo->getResults($q);
     }
@@ -119,7 +119,7 @@ class PhantomData extends Service
 
                     $this->dataCollected[$link_id]['page_weight'] = $temp['size'];
                     $this->dataCollected[$link_id]['load_time'] = $temp['duration'];
-                    $this->dataCollected[$link_id]['ignore_it'] = $temp['url'];
+                    # $this->dataCollected[$link_id]['ignore_it'] = $temp['url'];
                     break;
             }
         }

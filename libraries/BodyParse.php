@@ -787,16 +787,10 @@ class BodyParse
             'server_config' => implode(';', $this->getServerConfig()),
 
             // fetched by others:
-            'load_time' => Standards::$default,
-            'page_weight' => Standards::$default,
-            'indexed_bing' => Standards::$default,
-            'indexed_google' => Standards::$default,
-            'density' => Standards::$default,
-
-            // defaults, not handled:
-            'cached' => Standards::$default,
-            'page_trackers' => Standards::$default,
-
+            # 'load_time' => Standards::$default,
+            # 'page_weight' => Standards::$default,
+            # 'indexed_bing' => Standards::$default,
+            # 'indexed_google' => Standards::$default,
         );
     }
 
