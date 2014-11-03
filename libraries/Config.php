@@ -65,7 +65,7 @@ class Config
     public static function getDBConfig()
     {
         return array(
-            'host' => '104.131.14.145',
+            'host' => '104.131.163.243',
             'db_name' => 'site_analysis',
             'username' => 'root',
             'password' => 'My6Celeb',
