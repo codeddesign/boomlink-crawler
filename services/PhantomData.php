@@ -24,7 +24,7 @@ class PhantomData extends Service
                 $this->link_ids = array();
                 foreach ($this->urls as $a_no => $info) {
                     $this->link_ids[] = $info['id'];
-                    $this->external_links['phantom_' . $info['id']] = Config::getConfessLink($info['pageURL']);
+                    $this->external_links['phantom_' . $info['id']] = Config::getConfessLink($info['PageURL']);
                 }
 
                 // do the actual curl:
@@ -93,7 +93,7 @@ class PhantomData extends Service
      */
     private function getProjectLinks()
     {
-        $pattern = 'SELECT * FROM page_main_info phantom_data_status=%d LIMIT %d';
+        $pattern = 'SELECT * FROM page_main_info WHERE phantom_data_status=%d LIMIT %d';
         $q = sprintf($pattern, Config::CURRENT_STATUS, static::MAX_LINKS);
         return $this->dbo->getResults($q);
     }
@@ -111,7 +111,7 @@ class PhantomData extends Service
                     $temp = json_decode($content, true);
                     if (!is_array($temp)) {
                         $temp = array(
-                            'url' => $this->urls[$link_id]['page_url'],
+                            'url' => $this->urls[$link_id]['PageURL'],
                             'duration' => 'n/a',
                             'size' => 'n/a',
                         );

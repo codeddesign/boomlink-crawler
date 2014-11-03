@@ -98,7 +98,7 @@ class ProxyData extends Service
                 # info: right now $un_parsed contains only one link;
                 foreach ($un_parsed as $l_no => $info) {
                     $this->link_id = $info['id'];
-                    $link = $info['pageURL'];
+                    $link = $info['PageURL'];
 
                     $this->external_links = array(
                         // social:
@@ -115,7 +115,7 @@ class ProxyData extends Service
                     );
 
 
-                    $this->curl = new Curl(true, array('proxy' => $useProxy));
+                    $this->curl = new Curl(true/*, array('proxy' => $useProxy)*/);
                     $this->curl->addLinks($this->external_links);
                     $this->curl->run();
 

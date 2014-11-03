@@ -26,6 +26,58 @@ class ProjectListener extends Service
         Standards::debug(__CLASS__ . ' (parent thread) is: ' . $this->getPID());
     }
 
+    public function doWork()
+    {
+        # RUN: parallel sub-service ProxyData:
+        $this->runService('ProxyData', array());
+        //$this->runService('PhantomData', array());
+
+        // rest of logic:
+        $RUN = TRUE;
+        while ($RUN == TRUE) {
+            /* if there are new projects: */
+            $this->getAllProjects();
+            $toCrawl = $this->areNewProjects();
+
+            if ($toCrawl !== FALSE) {
+                foreach ($toCrawl as $d_id => $info) {
+                    $params = array(
+                        'url' => $info['DomainURL'],
+                        'domain_id' => $info['DomainURLIDX'],
+                    );
+
+                    /* run sub-services */
+                    # 'waitable' data:
+                    if ($info['server_ip'] == '') {
+                        $this->runService('WhoIs', $params);
+                        $this->runService('RobotsFile', $params);
+                    }
+
+                    # 'non-waitable' data:
+                    //$this->runService('CrawlProject', $params);
+                    //$this->runService('ApiData', $params);
+
+                    # keep track of the 'crawled' domain:
+                    $this->crawlingDomains[$info['domain_name']] = '';
+                }
+
+                # wait for 'waitable' services:
+                $this->waitForFinish();
+
+                # save data if any:
+                $this->getDataCollected();
+                $this->saveCollectedData();
+            } else {
+                Standards::debug('no new projects. no work to do?!');
+            }
+
+            // ...
+            Standards::debug('temporary exit!', Standards::DO_EXIT);
+            Standards::doPause('pause: ' . $this->serviceName, 1);
+            //$RUN = false;
+        }
+    }
+
     /**
      * @return array|bool
      */
@@ -85,7 +137,7 @@ class ProjectListener extends Service
 
         // create update keys:
         $patternKeys = '%s=VALUES(%s)';
-        $tableKeys = array('id', 'robots_file', 'server_ip', 'registration_date', 'server_location', 'hosting_company', 'Status');
+        $tableKeys = array('DomainURLIDX', 'robots_file', 'server_ip', 'registration_date', 'server_location', 'hosting_company', 'Status');
         foreach ($tableKeys as $k_no => $key) {
             if ($key !== 'id') {
                 $updateKeys[] = sprintf($patternKeys, $key, $key);
@@ -120,59 +172,5 @@ class ProjectListener extends Service
         }
 
         return $newOnes;
-    }
-
-    public function doWork()
-    {
-        # RUN: parallel sub-service ProxyData:
-        $this->runService('ProxyData', array());
-        $this->runService('PhantomData', array());
-
-        // rest of logic:
-        $RUN = TRUE;
-        while ($RUN == TRUE) {
-            /* if there are new projects: */
-            $this->getAllProjects();
-            $toCrawl = $this->areNewProjects();
-
-            //Standards::debug($newOnes, Standards::DO_EXIT);
-
-            if ($toCrawl !== FALSE) {
-                foreach ($toCrawl as $d_id => $info) {
-                    $params = array(
-                        'url' => $info['DomainURL'],
-                        'domain_id' => $info['DomainURLIDX'],
-                    );
-
-                    /* run sub-services */
-                    # 'waitable' data:
-                    if ($info['server_ip'] == '') {
-                        $this->runService('WhoIs', $params);
-                        $this->runService('RobotsFile', $params);
-                    }
-
-                    # 'non-waitable' data:
-                    $this->runService('CrawlProject', $params);
-                    $this->runService('ApiData', $params);
-
-                    # keep track of the 'crawled' domain:
-                    $this->crawlingDomains[$info['domain_name']] = '';
-                }
-
-                # wait for 'waitable' services:
-                $this->waitForFinish();
-
-                # save data if any:
-                $this->getDataCollected();
-                $this->saveCollectedData();
-            } else {
-                Standards::debug('no new projects. no work to do?!');
-            }
-
-            // ...
-            Standards::debug('temporary exit!', Standards::DO_EXIT);
-            Standards::doPause('pause: ' . $this->serviceName, 1);
-            //$RUN = false;
-        }
     }
 }

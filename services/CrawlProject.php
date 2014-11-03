@@ -34,7 +34,7 @@ class CrawlProject extends Service
             $links = array();
             $updateIds = array();
             foreach ($un_parsed as $u_no => $info) {
-                $links[$u_no] = trim($info['pageUrl']);
+                $links[$u_no] = trim($info['PageURL']);
                 $updateIds[] = $info['id'];
             }
 
@@ -154,7 +154,7 @@ class CrawlProject extends Service
         $tableKeys = array();
         foreach ($saveData as $l_no => $info) {
             if (!$once) {
-                $tableKeys['link_id'] = 0;
+                $tableKeys['id'] = 0;
 
                 $i = 1;
                 foreach ($info['links_info'] as $key => $value) {
@@ -184,8 +184,17 @@ class CrawlProject extends Service
             $i++;
         }
 
-        $pattern = 'INSERT INTO page_main_info (%s) VALUES %s';
-        $q = sprintf($pattern, implode(',', $tableKeys), implode(',', $values));
+        // prepare update keys:
+        $patternKeys = '%s=VALUES(%s)';
+        $updateKeys = array();
+        foreach ($tableKeys as $k_no => $key) {
+            if ($key !== 'id') {
+                $updateKeys[] = sprintf($patternKeys, $key, $key);
+            }
+        }
+
+        $pattern = 'INSERT INTO page_main_info (%s) VALUES %s ON DUPLICATE KEY UPDATE %s';
+        $q = sprintf($pattern, implode(',', $tableKeys), implode(',', $values), implode(',', $updateKeys));
         return $this->dbo->runQuery($q);
     }
 
@@ -196,7 +205,7 @@ class CrawlProject extends Service
     private function saveNextLinks(array $nextLinks)
     {
         $values = array();
-        $tableKeys = array('DomainURLIDX', 'pageURL', 'depth', 'href');
+        $tableKeys = array('DomainURLIDX', 'PageURL', 'depth', 'href');
         foreach ($nextLinks as $link => $info) {
             $values[] = '(' . $this->domain_id . ', \'' . $link . '\', \'' . $info['depth'] . '\', \'' . addslashes($info['href']) . '\')';
         }
@@ -226,7 +235,7 @@ class CrawlProject extends Service
             $all[$a_no] = '\'' . $link . '\'';
         }
 
-        $pattern = 'SELECT id, pageURL FROM page_main_info WHERE pageURL IN (%s)';
+        $pattern = 'SELECT id, PageURL FROM page_main_info WHERE PageURL IN (%s)';
         $q = sprintf($pattern, implode(',', $all));
         $r = $this->dbo->getResults($q);
 
@@ -234,8 +243,8 @@ class CrawlProject extends Service
             return $nextLinks;
         } else {
             foreach ($r as $r_no => $info) {
-                if (isset($nextLinks[$info['pageURL']])) {
-                    unset($nextLinks[$info['pageURL']]);
+                if (isset($nextLinks[$info['PageURL']])) {
+                    unset($nextLinks[$info['PageURL']]);
                 }
             }
         }

@@ -2,7 +2,7 @@
 
 class ApiData extends Service
 {
-    private $arguments, $domain_id, $dbo, $external_links, $urls, $link_ids;
+    private $arguments, $domain_id, $dbo, $external_links, $urls, $link_ids, $curl;
     CONST MAX_LINKS = 5, SECONDS_PAUSE = 1;
 
     /**
@@ -35,17 +35,17 @@ class ApiData extends Service
                     $this->link_ids[] = $info['id'];
 
                     $temp = array(
-                        'majestic_' . $info['id'] => Config::getApiLink('majestic', $info['pageURL']),
-                        'uclassify_read_' . $info['id'] => Config::getApiLink('uclassify_read', $info['pageURL']),
+                        'majestic_' . $info['id'] => Config::getApiLink('majestic', $info['PageURL']),
+                        'uclassify_read_' . $info['id'] => Config::getApiLink('uclassify_read', $info['PageURL']),
                     );
 
                     $this->external_links = array_merge($this->external_links, $temp);
                 }
 
                 // do the actual curl:
-                $curl = new Curl();
-                $curl->addLinks($this->external_links);
-                $curl->run();
+                $this->curl = new Curl();
+                $this->curl->addLinks($this->external_links);
+                $this->curl->run();
 
                 // parse body's for needed data:
                 $this->parseApiData();
@@ -82,7 +82,7 @@ class ApiData extends Service
         }
 
         // prepare values:
-        $pattern = '(%s, \'%s\', \'%s\', \'%s\', \'%s\', \'%s\')';
+        $pattern = '(%s, \'%s\', \'%s\', \'%s\')';
         $values = array();
         foreach ($this->dataCollected as $link_id => $info) {
             $values[] = sprintf($pattern, $link_id, $info['sentimental'], $info['negative'], $info['positive']);
@@ -108,7 +108,7 @@ class ApiData extends Service
      */
     private function getProjectLinks()
     {
-        $pattern = 'SELECT * FROM _sitemap_links WHERE domain_id=%d AND api_data_status=%d LIMIT %d';
+        $pattern = 'SELECT * FROM page_main_info WHERE DomainURLIDX=%d AND api_data_status=%d LIMIT %d';
         $q = sprintf($pattern, $this->domain_id, Config::CURRENT_STATUS, self::MAX_LINKS);
         return $this->dbo->getResults($q);
     }

@@ -7,7 +7,7 @@ class MySQL
     function __construct()
     {
         $this->config = array(
-            'host' => '104.131.14.145', 
+            'host' => '104.131.14.145',
             'db_name' => 'site_analysis',
             'username' => 'root',
             'password' => 'My6Celeb',
@@ -61,6 +61,7 @@ class MySQL
     {
         if ($this->connectionIsOk()) {
             if (!($id = mysqli_query($this->connection, $query))) {
+                Standards::debug($query);
                 Standards::debug(mysqli_error($this->connection), Standards::DO_EXIT);
             }
 
@@ -89,6 +90,7 @@ class MySQL
                     }
                 }
             } else {
+                Standards::debug($query);
                 Standards::debug(mysqli_error($this->connection), Standards::DO_EXIT);
             }
         }

@@ -13,6 +13,7 @@ $services = array(
     array('class' => 'CrawlProject', 'wait' => false),
     array('class' => 'ApiData', 'wait' => false),
     array('class' => 'ProxyData', 'wait' => false),
+    array('class' => 'PhantomData', 'wait' => false),
 );
 
 # RUN:
