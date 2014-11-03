@@ -6,12 +6,7 @@ class MySQL
 
     function __construct()
     {
-        $this->config = array(
-            'host' => '104.131.14.145',
-            'db_name' => 'site_analysis',
-            'username' => 'root',
-            'password' => 'My6Celeb',
-        );
+        $this->config = Config::getDBConfig();
 
         // connect:
         $this->makeConnection();

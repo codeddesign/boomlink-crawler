@@ -58,4 +58,17 @@ class Config
 
         return sprintf(self::$runConfessPattern, $path, $url);
     }
+
+    /**
+     * @return array
+     */
+    public static function getDBConfig()
+    {
+        return array(
+            'host' => '104.131.14.145',
+            'db_name' => 'site_analysis',
+            'username' => 'root',
+            'password' => 'My6Celeb',
+        );
+    }
 } 
