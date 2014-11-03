@@ -51,7 +51,7 @@ $q = 'INSERT INTO status_domain (project_title, domain_name, DomainURL, config) 
 $domain_id = $db->runQuery($q);
 
 # extra add:
-$q = 'INSERT INTO domains_to_crawl (idx, DomainURL) VALUES (\'' . $domain_id . '\', \'' . $project['URL'] . '\')';
+$q = 'INSERT INTO domains_to_crawl (idx, DomainURL) VALUES (\'' . $domain_id . '\', \'' . $project['url'] . '\')';
 $db->runQuery($q);
 
 // save main link:
