@@ -30,7 +30,7 @@ class ProjectListener extends Service
     {
         # RUN: parallel sub-service ProxyData:
         $this->runService('ProxyData', array());
-        //$this->runService('PhantomData', array());
+        $this->runService('PhantomData', array());
 
         // rest of logic:
         $RUN = TRUE;
@@ -54,8 +54,8 @@ class ProjectListener extends Service
                     }
 
                     # 'non-waitable' data:
-                    //$this->runService('CrawlProject', $params);
-                    //$this->runService('ApiData', $params);
+                    $this->runService('CrawlProject', $params);
+                    $this->runService('ApiData', $params);
 
                     # keep track of the 'crawled' domain:
                     $this->crawlingDomains[$info['domain_name']] = '';
@@ -74,7 +74,8 @@ class ProjectListener extends Service
             // ...
             Standards::debug('temporary exit!', Standards::DO_EXIT);
             Standards::doPause('pause: ' . $this->serviceName, 1);
-            //$RUN = false;
+
+            # $RUN = false;
         }
     }
 
