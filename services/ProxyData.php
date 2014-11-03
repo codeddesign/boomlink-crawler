@@ -115,7 +115,7 @@ class ProxyData extends Service
                     );
 
 
-                    $this->curl = new Curl(true/*, array('proxy' => $useProxy)*/);
+                    $this->curl = new Curl(true, array('proxy' => $useProxy));
                     $this->curl->addLinks($this->external_links);
                     $this->curl->run();
 
