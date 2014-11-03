@@ -30,7 +30,7 @@ if (!isset($_POST['maxDepth']) OR $_POST['maxDepth'] == '0' OR $_POST['atOnce'] 
 $rules = array(
     'atOnce' => trim($_POST['atOnce']),
     'botName' => trim($_POST['botName']),
-    'maxDepth' => trim($_POST['maxDepth']),
+    'maxDepth' => '99',
 );
 
 $project = array(
@@ -47,7 +47,7 @@ $db = new MySQL();
 
 # run needed queries:
 // save project:
-$q = 'INSERT INTO _sitemap_domain_info (project_title, domain_name, project_url, config) VALUES (\'' . addslashes($project['project_title']) . '\', \'' . $domain . '\', \'' . $clean_url . '\', \'' . addslashes($project['config']) . '\')';
+$q = 'INSERT INTO status_domain (project_title, domain_name, DomainURL, config) VALUES (\'' . addslashes($project['project_title']) . '\', \'' . $domain . '\', \'' . $clean_url . '\', \'' . addslashes($project['config']) . '\')';
 $domain_id = $db->runQuery($q);
 
 // save main link:
@@ -59,11 +59,11 @@ if (isset($_POST['links']) AND strlen(trim($_POST['links'])) > 0) {
         $values[] = '(\'' . $domain_id . '\', \'' . $line . '\')';
     }
 
-    $q = 'INSERT INTO _sitemap_links (domain_id, page_url) VALUES ';
+    $q = 'INSERT INTO page_main_info (DomainURLIDX, pageURL) VALUES ';
     $q .= implode(',', $values);
     $db->runQuery($q);
 } else {
-    $q = 'INSERT INTO _sitemap_links (domain_id, page_url) VALUES (\'' . $domain_id . '\', \'' . $clean_url . '\')';
+    $q = 'INSERT INTO page_main_info (DomainURLIDX, pageURL) VALUES (\'' . $domain_id . '\', \'' . $clean_url . '\')';
     $link_id = $db->runQuery($q);
 }
 

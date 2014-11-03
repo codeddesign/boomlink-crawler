@@ -7,14 +7,14 @@
         <OPTION VALUE="5">5</OPTION>
         <OPTION VALUE="10">10</OPTION>
     </select>
-    <select name="maxDepth">
+    <!--<select name="maxDepth">
         <option value="0">depth</option>
         <OPTION VALUE="1">1</OPTION>
         <OPTION VALUE="2">2</OPTION>
         <OPTION VALUE="3">3</OPTION>
         <OPTION VALUE="4">4</OPTION>
         <OPTION VALUE="5">5</OPTION>
-    </select>
+    </select>-->
     <input type="text" placeholder="project's title" name="project_title">
     <input type="text" placeholder="main url" name="url">
 
