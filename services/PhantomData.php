@@ -2,7 +2,7 @@
 
 class PhantomData extends Service
 {
-    private $dbo, $urls, $link_ids, $external_links;
+    private $dbo, $urls, $link_ids, $external_links, $curl;
     CONST MAX_LINKS = 4, SECONDS_PAUSE = 1;
 
     function doSets($arguments = array())
@@ -28,9 +28,9 @@ class PhantomData extends Service
                 }
 
                 // do the actual curl:
-                $curl = new Curl();
-                $curl->addLinks($this->external_links);
-                $curl->run();
+                $this->curl = new Curl();
+                $this->curl->addLinks($this->external_links);
+                $this->curl->run();
 
                 // parse body's for needed data:
                 $this->parseApiData();
