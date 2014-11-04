@@ -17,7 +17,8 @@ class PhantomData extends Service
             $this->urls = $this->getProjectLinks();
 
             if ($this->urls === FALSE) {
-                $RUN = false;
+                #$RUN = false;
+                Standards::doPause($this->serviceName, 5);
             } else {
                 //
                 $this->external_links = array();

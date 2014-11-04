@@ -80,7 +80,8 @@ class ProxyData extends Service
         while ($RUN) {
             $un_parsed = $this->getNonParsedLinks();
             if (!$un_parsed) {
-                $RUN = false;
+                #$RUN = false;
+                Standards::doPause($this->serviceName, 5);
             } else {
                 //
                 if (!isset($this->proxies[$i])) {
