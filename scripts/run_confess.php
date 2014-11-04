@@ -2,6 +2,8 @@
 // pre-check:
 if (isset($_GET['url'])) {
     $url = trim($_GET['url']);
+} elseif (isset($argv[1])) {
+    $url = trim($argv[1]);
 } else {
     exit('no url received');
 }
@@ -12,13 +14,26 @@ if (isset($_GET['url'])) {
  */
 function valuesAreOK($output)
 {
-    if (is_array($output)) {
+    if ($output == NULL OR stripos($output, 'duration') == FALSE) {
+        return FALSE;
+    }
+
+    if (stripos($output, '{') === FALSE AND stripos($output, '}') === FALSE) {
+        return FALSE;
+    }
+
+    $output = substr($output, strpos($output, '{'), strpos($output, '}') + 1);
+    try {
         $output = json_decode($output, true);
-    } else {
+    } catch (Exception $e) {
+        // ..
+    }
+
+    if (!is_array($output) OR stripos($output['duration'], 'nan') !== FALSE OR stripos($output['size'], 'nan') !== FALSE) {
         return false;
     }
 
-    return (stripos($output['duration'], 'nan') !== FALSE OR stripos($output['size'], 'nan') !== false) ? false : true;
+    return $output;
 }
 
 // default:
@@ -46,7 +61,7 @@ while (!$valuesOK AND $attempt < $max_attempts) {
 
     // run:
     exec($cmd, $output); // $output = array()
-    $RESULT = $output[0];
+    $RESULT = $output[0] . 'xyz';
 
     // check:
     $valuesOK = valuesAreOK($RESULT);
@@ -59,8 +74,8 @@ while (!$valuesOK AND $attempt < $max_attempts) {
 }
 
 // shows result:
-if (!isset($RESULT) OR $valuesOK == FALSE) {
+if (!isset($RESULT) OR $valuesOK == FALSE OR !is_array($valuesOK)) {
     exit($DEFAULT);
 }
 
-exit($RESULT);
+exit(json_encode($valuesOK, true));
