@@ -38,7 +38,7 @@ class PhantomData extends Service
                 # save data:
                 $this->saveData();
                 $this->updateStatus();
-                Standards::doPause('PhantomData', static::SECONDS_PAUSE);
+                Standards::doPause($this->serviceName, self::SECONDS_PAUSE);
             }
         }
     }

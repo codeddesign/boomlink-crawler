@@ -329,12 +329,17 @@ class Standards
 
     /**
      * Purpose: do a random (100-300mls) or predefined (as parameter) sleep in milliseconds!
+     * @param string $service
      * @param bool|int $milliseconds
      */
-    public static function doDelay($milliseconds = FALSE)
+    public static function doDelay($service = NULL, $milliseconds = FALSE)
     {
         if (!$milliseconds) {
             $milliseconds = rand(100, 300);
+        }
+
+        if($service !== NULL) {
+            self::debug($service . ' is sleeping ' . $milliseconds . 'mls');
         }
 
         usleep($milliseconds);

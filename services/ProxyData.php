@@ -129,7 +129,7 @@ class ProxyData extends Service
                     $this->updateStatus();
 
                     # make small delay:
-                    Standards::doDelay(rand(100, 300));
+                    Standards::doDelay($this->serviceName, rand(100, 300));
                 }
             }
         }

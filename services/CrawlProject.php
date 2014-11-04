@@ -91,7 +91,7 @@ class CrawlProject extends Service
             $this->updateLinksByIds($updateIds);
 
             # do pause:
-            Standards::doDelay(rand(100, 300));
+            Standards::doDelay($this->serviceName, rand(100, 300));
 
             # rain-check after work:
             $un_parsed = $this->getNonParsedLinks();

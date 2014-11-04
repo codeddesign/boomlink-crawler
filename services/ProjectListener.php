@@ -70,10 +70,10 @@ class ProjectListener extends Service
             }
 
             // ...
-            # Standards::debug('temporary exit!', Standards::DO_EXIT);
-            Standards::doPause('pause: ' . $this->serviceName, 3);
+            Standards::doPause($this->serviceName, 3);
 
             # $RUN = false;
+            # Standards::debug('temporary exit!', Standards::DO_EXIT);
         }
     }
 
