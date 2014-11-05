@@ -33,14 +33,20 @@ $rules = array(
     'maxDepth' => '99',
 );
 
+$url = trim($_POST['url']);
+if (!Standards::linkHasScheme($url)) {
+    $url = 'http://' . $url;
+}
+
 $project = array(
     // new:
     'project_title' => $_POST['project_title'],
-    'url' => trim($_POST['url']),
+    'url' => $url,
     'config' => json_encode($rules, true),
 );
+
 $domain = Standards::getHost($project['url']);
-$clean_url = Standards::getCleanURL($project['url']) . '/';
+$clean_url = Standards::getCleanURL($url) . '/';
 
 // init db:
 $db = new MySQL();
