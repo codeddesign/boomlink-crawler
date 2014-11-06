@@ -20,7 +20,9 @@ To start the crawler:
 
 Crawler engine description and other details of the current working version:
 $ run.php creates a service called 'ProjectListener' that his main purpose is to listen for new added projects.
+
 $ ProjectListener by default it creates 2 sub-services:
+
 - ProxyData - this service is using proxies in order to fetch information. It is running independent and it's getting the links from db that are not yet parsed. The status of this one is identified by column
 'proxy_data_status' in table 'page_main_info' which will change to 1 when it's completed. The reason why this is runnig like this, because it's hard to manage the current number of proxies on parallel sub-services per each project
 - PhantomData - this services makes http requests via curl to scripts/run_confess.php, which executes a phantomjs script that it's loading a parsed link and it returns the page weight (in kb) and load time (in seconds).
