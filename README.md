@@ -14,9 +14,9 @@ To create a project:
 
 
 To start the crawler:
- a. php run.php
- b. php run.php > /dev/null &
- * version (b) is to run it in background
+ * php run.php
+ * php run.php > /dev/null &
+ ! version (b) is to run it in background
 
 Crawler engine description and other details of the current working version:
 $ run.php creates a service called 'ProjectListener' that his main purpose is to listen for new added projects.
