@@ -3,7 +3,7 @@
 #todo - strip <script> ... </script>
 class BodyParse
 {
-    protected $xPath, $xDoc, $xBody, $headings, $body, $parsedUrl, $parsedDomain, $mainURL;
+    protected $xPath, $xDoc, $xBody, $headings, $body, $parsedUrl, $parsedDomain, $mainURL, $cleanedBody;
     public $collected;
 
     /**
@@ -19,6 +19,7 @@ class BodyParse
         $this->parsedDomain = Standards::getHost($parsedUrl);
         $this->mainURL = Standards::getMainURL($parsedUrl);
         $this->curlInfo = $curlInfo;
+        $this->cleanedBody = FALSE;
 
         // holder:
         $this->collected = array();
@@ -32,6 +33,9 @@ class BodyParse
 
         if ($body !== NULL AND strlen(trim($body)) > 0) {
             $this->xDoc->loadHTML($body);
+
+            # clean up body of html elements: script, style, ..
+            $this->cleanBody();
 
             // sets:
             $this->xBody = $this->xDoc->saveHTML();
@@ -872,5 +876,77 @@ class BodyParse
         print_r(
             $this->collected
         );
+    }
+
+    /**
+     * @return mixed
+     */
+    public function cleanBody()
+    {
+        $remove = array(
+            '#<script(.*?)>(.*?)</script>#is',
+            '#<noscript(.*?)>(.*?)</noscript>#is',
+            '#<style(.*?)>(.*?)</style>#is',
+            '#<iframe(.*?)>(.*?)</iframe>#is',
+            '#<!--(.*?)-->#is',
+        );
+
+        if ($this->body == NULL) {
+            $this->body = '';
+        }
+
+        // sets:
+        $this->body = preg_replace($remove, '', $this->body);
+        $this->cleanedBody = TRUE;
+
+        return $this->body;
+    }
+
+    /**
+     * @return mixed|string
+     */
+    public function getBodyText()
+    {
+        if (!$this->cleanedBody) {
+            $this->cleanBody();
+        }
+
+        if (strlen(trim($this->body)) == 0) {
+            return '';
+        }
+
+        /* start clean up to get body's text! */
+        $body = $this->body;
+
+        # pre-check if we have a 'body .. /body' - more important is that we checking if both of them are there;
+        if (stripos($body, '<body') === false) {
+            $body = '<body>' . $body;
+        }
+
+        if (stripos($body, '</body>') === false) {
+            $body .= '</body>';
+        }
+
+        # get body 'content' and remove ALL html tags:
+        if (preg_match('#<body(.*?)>(.*?)</body>#is', $body, $matched)) {
+            $body = strip_tags($matched[2]);
+        }
+
+        # filter by line (if we got multiple lines content):
+        if (stripos($body, "\n") !== false) {
+            $lines = explode("\n", $body);
+            $body = '';
+            foreach ($lines as $l_num => $line) {
+                $line = trim($line);
+                if (strlen($line) > 1) {
+                    $body .= trim($line) . "\n";
+                }
+            }
+        }
+
+        # remove '\r' (just in case):
+        $body = str_ireplace("\r", "", $body);
+
+        return $body;
     }
 }

@@ -49,16 +49,16 @@ class CrawlProject extends Service
             $headerS = $curl->getHeaderOnly();
 
             // holder:
-            $redirects = $nextLinks = $save = array();
+            $saveBodyText = $notCrawlableIds = $redirects = $nextLinks = $save = array();
             foreach ($links as $l_no => $link) {
                 $bp = new BodyParse($link, $bodyS[$l_no], $headerS[$l_no], $curlInfoS[$l_no]);
                 if ($bp->isCrawlAllowed()) {
+                    # body text only:
+                    $saveBodyText[$un_parsed[$l_no]['id']] = $bp->getBodyText();
+
+                    # collected data:
                     $save[$l_no] = array(
                         'links_info' => $bp->getLinkInfo(),
-                        /*'links' => array(
-                            'internal' => $bp->getSpecificLinks('internal'),
-                            'external' => $bp->getSpecificLinks('external'),
-                        ),*/
                     );
 
                     # avoid getting lists over the maxDepth;
@@ -66,6 +66,9 @@ class CrawlProject extends Service
                     if ($depth <= $this->project_config['maxDepth']) {
                         $nextLinks = $bp->getCrawlableOnes($depth);
                     }
+                } else {
+                    # save the one which might not allow indexing so it could be removed
+                    $notCrawlableIds[] = $un_parsed[$l_no]['id'];
                 }
 
                 // get redirects:
@@ -99,9 +102,7 @@ class CrawlProject extends Service
 
             if (count($save) > 0) {
                 $this->saveLinkInfo($save, $un_parsed);
-
-                # it's important that this has to be AFTER saveLinkInfo(), otherwise if will get a DB conflict due to duplicated 'PageURL'
-                $this->saveRedirects($redirects);
+                $this->saveBodyText($saveBodyText);
 
                 // determine if there are any already parsed:
                 $nextLinks = $this->filterNotYetParsed($nextLinks);
@@ -109,6 +110,12 @@ class CrawlProject extends Service
                     $this->saveNextLinks($nextLinks);
                 }
             }
+
+            # it's important that this has to be AFTER saveLinkInfo(), otherwise if will get a DB conflict due to duplicated 'PageURL'
+            $this->saveRedirects($redirects);
+
+            # remove the ones that their body does not allow indexing:
+            $this->removeLinksByIds($notCrawlableIds);
 
             # do update of the parsed links to next status:
             $this->updateLinksByIds($updateIds);
@@ -184,11 +191,11 @@ class CrawlProject extends Service
      * @param array $updateIds
      * @return bool
      */
-    private function updateLinksByIds(array $updateIds)
+    private function updateLinksByIds(array $linkIds)
     {
-        if (count($updateIds) > 0) {
+        if (count($linkIds) > 0) {
             $pattern = 'UPDATE page_main_info SET parsed_status=%d WHERE id IN (%s)';
-            $q = sprintf($pattern, Config::NEW_STATUS, implode(',', $updateIds));
+            $q = sprintf($pattern, Config::NEW_STATUS, implode(',', $linkIds));
             return $this->dbo->runQuery($q);
         }
 
@@ -302,5 +309,40 @@ class CrawlProject extends Service
         }
 
         return $nextLinks;
+    }
+
+    /**
+     * @param array $linkIds
+     * @return bool
+     */
+    private function removeLinksByIds(array $linkIds)
+    {
+        if (count($linkIds) > 0) {
+            $pattern = 'DELETE FROM page_main_info WHERE id IN (%s)';
+            $q = sprintf($pattern, Config::NEW_STATUS, implode(',', $linkIds));
+            return $this->dbo->runQuery($q);
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array $saveBodyText
+     * @return mixed
+     */
+    private function saveBodyText(array $saveBodyText)
+    {
+        if (!is_array($saveBodyText) OR count($saveBodyText) == 0) {
+            return false;
+        }
+
+        # prepare text:
+        $values = array();
+        foreach ($saveBodyText as $link_id => $text) {
+            $values[] = '(' . $link_id . ', \'' . addslashes($text) . '\')';
+        }
+
+        $q = 'INSERT INTO page_main_info_body (page_id, body) VALUES ' . implode(',', $values);
+        return $this->dbo->runQuery($q);
     }
 }
