@@ -46,7 +46,7 @@ $project = array(
 );
 
 $domain = Standards::getHost($project['url']);
-$clean_url = Standards::getCleanURL($url) . '/';
+$clean_url = Standards::getCleanURL($url);
 
 // init db:
 $db = new MySQL();

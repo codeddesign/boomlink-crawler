@@ -61,7 +61,7 @@ class Curl
         // proxy handle:
         if (isset($this->curl_sets['proxy'])) {
             $proxy = $this->curl_sets['proxy'];
-            
+
             $this->curl_config[CURLOPT_PROXYTYPE] = 'HTTP';
             $this->curl_config[CURLOPT_PROXY] = $proxy['ProxyIP'] . ':' . $proxy['ProxyPort'];
         }
@@ -81,7 +81,7 @@ class Curl
     {
         if ($this->links === NULL) {
             echo('Curl does no have any links set.');
-            return;
+            return false;
         }
 
         if (!is_array($this->links)) {
@@ -89,6 +89,8 @@ class Curl
         } else {
             $this->runMultiple($this->links);
         }
+
+        return true;
     }
 
     /**
@@ -181,7 +183,7 @@ class Curl
      */
     public function getHeaderOnly()
     {
-        if (count($this->header) == 1) {
+        if (count($this->header) == 1 AND !$this->multi) {
             $temp = array_values($this->header);
             return $temp[0];
         } else {

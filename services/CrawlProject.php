@@ -49,7 +49,7 @@ class CrawlProject extends Service
             $headerS = $curl->getHeaderOnly();
 
             // holder:
-            $nextLinks = $save = array();
+            $redirects = $nextLinks = $save = array();
             foreach ($links as $l_no => $link) {
                 $bp = new BodyParse($link, $bodyS[$l_no], $headerS[$l_no], $curlInfoS[$l_no]);
                 if ($bp->isCrawlAllowed()) {
@@ -67,6 +67,17 @@ class CrawlProject extends Service
                         $nextLinks = $bp->getCrawlableOnes($depth);
                     }
                 }
+
+                // get redirects:
+                $temp = $bp->getRedirects();
+                if (count($temp) > 0) {
+                    foreach ($temp as $temp_link => $temp_info) {
+                        // we do not add (+1) to depth!
+                        $temp[$temp_link]['depth'] = $un_parsed[$l_no]['depth'];
+                    }
+
+                    $redirects = array_merge($redirects, $temp);
+                }
             }
 
             // remove from nextLinks the ones that don't abide robots.txt:
@@ -77,8 +88,20 @@ class CrawlProject extends Service
                 }
             }
 
+            /* extra filtering before database interaction: */
+            $flipped_links = array_flip($links);
+            foreach ($flipped_links as $link => $l_no) {
+                if (isset($redirects[$link])) {
+                    // technically here we are removing the saved data of the ones which might be redirected to one of the links from the current set of X# links
+                    unset($save[$l_no]);
+                }
+            }
+
             if (count($save) > 0) {
                 $this->saveLinkInfo($save, $un_parsed);
+
+                # it's important that this has to be AFTER saveLinkInfo(), otherwise if will get a DB conflict due to duplicated 'PageURL'
+                $this->saveRedirects($redirects);
 
                 // determine if there are any already parsed:
                 $nextLinks = $this->filterNotYetParsed($nextLinks);
@@ -97,6 +120,36 @@ class CrawlProject extends Service
             $un_parsed = $this->getNonParsedLinks();
         }
 
+    }
+
+    /**
+     * @param array $redirects
+     * @return mixed
+     */
+    private function saveRedirects(array $redirects)
+    {
+        if (count($redirects) == 0) {
+            return false;
+        }
+
+        // prepare values:
+        $values = array();
+        foreach ($redirects as $link => $link_info) {
+            $values[] = '(\'' . $link . '\', \'' . $this->domain_id . '\', \'' . $link_info['depth'] . '\', \'' . $link_info['http_code'] . '\', 1, 1, 1, 1, 1)';
+        }
+
+        // prepare duplicate:
+        $tableKeys = array('PageURL', 'DomainURLIDX', 'depth', 'http_code', 'is_301', 'parsed_status', 'api_data_status', 'proxy_data_status', 'phantom_data_status');
+        $updateKeys = array();
+        foreach ($tableKeys as $k_no => $key) {
+            if ($key !== 'PageURL') {
+                $updateKeys[] = sprintf('%s=VALUES(%s)', $key, $key);
+            }
+        }
+
+        $pattern = 'INSERT INTO page_main_info (%s) VALUES %s ON DUPLICATE KEY UPDATE %s';
+        $q = sprintf($pattern, implode(',', $tableKeys), implode(',', $values), implode(',', $updateKeys));
+        return $this->dbo->runQuery($q);
     }
 
     /**
@@ -185,11 +238,10 @@ class CrawlProject extends Service
         }
 
         // prepare update keys:
-        $patternKeys = '%s=VALUES(%s)';
         $updateKeys = array();
         foreach ($tableKeys as $k_no => $key) {
             if ($key !== 'id') {
-                $updateKeys[] = sprintf($patternKeys, $key, $key);
+                $updateKeys[] = sprintf('%s=VALUES(%s)', $key, $key);
             }
         }
 

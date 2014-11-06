@@ -29,14 +29,17 @@ class BodyParse
         // 'normalize' body - IMPORTANT - it makes lowercase all tags
         $this->xDoc = new DomDocument();
         $this->xDoc->NormalizeDocument();
-        $this->xDoc->loadHTML($body);
 
-        // sets:
-        $this->xBody = $this->xDoc->saveHTML();
-        $this->xPath = new DomXPath($this->xDoc);
+        if ($body !== NULL AND strlen(trim($body)) > 0) {
+            $this->xDoc->loadHTML($body);
 
-        // needed to avoid 'html' errors/warnings:
-        libxml_use_internal_errors(false);
+            // sets:
+            $this->xBody = $this->xDoc->saveHTML();
+            $this->xPath = new DomXPath($this->xDoc);
+
+            // needed to avoid 'html' errors/warnings:
+            libxml_use_internal_errors(false);
+        }
     }
 
     /**
@@ -112,8 +115,17 @@ class BodyParse
             return $this->collected['header'];
         }
 
+        // sets:
         $parsed = array();
-        $http_code = '302';
+        $http_code = 'n/a';
+
+        /*
+         * While parsing the header, we are checking for redirects. So we need to check if the parsed link redirects to some link. So we are saving it to this variable.
+         * Also, during the process (in case one/multiple redirects do occur) the http code is being associated to it and it gets changed for the next link (for multiple redirects).
+         * */
+        $temp_forURL = $this->parsedUrl;
+
+        // parsing the header:
         $lines = explode("\n", $this->header);
         foreach ($lines as $l_num => $line) {
             if (preg_match('#HTTP/(.*?)\s([\d]+)#i', $line, $matched)) {
@@ -121,7 +133,8 @@ class BodyParse
             }
 
             if (preg_match('/location:(.*)/i', $line, $matched)) {
-                $this->collected['redirects'][trim($matched[1])] = $http_code;
+                $this->collected['redirects'][$temp_forURL]['http_code'] = $http_code;
+                $temp_forURL = trim($matched[1]);
             }
 
             // if empty line occurred means we got multi headers; so we reset $parsed, to get the next one
@@ -712,13 +725,15 @@ class BodyParse
                 $element = $element->item(0);
             }
 
-            $attributes = $this->getNodeAttributes($element->attributes);
+            if (is_object($element)) {
+                $attributes = $this->getNodeAttributes($element->attributes);
 
-            $possibleNames = array('lang', 'xml:lang');
-            foreach ($possibleNames as $p_no => $p_name)
-                if (!$lang AND isset($attributes[$p_name])) {
-                    $lang = $attributes[$p_name];
-                }
+                $possibleNames = array('lang', 'xml:lang');
+                foreach ($possibleNames as $p_no => $p_name)
+                    if (!$lang AND isset($attributes[$p_name])) {
+                        $lang = $attributes[$p_name];
+                    }
+            }
         }
 
         // fallback: try to get it from response header
@@ -769,6 +784,7 @@ class BodyParse
     public function getLinkInfo()
     {
         return array(
+            'PageURL' => $this->curlInfo['url'],
             'page_title' => $this->getPageTitle(),
             'description' => trim((isset($this->collected['metaData']['description'])) ? $this->collected['metaData']['description'] : Standards::$default),
             'content_language' => $this->getLanguage(),
@@ -833,6 +849,22 @@ class BodyParse
         }
 
         return $s;
+    }
+
+    /**
+     * @return array
+     */
+    public function getRedirects()
+    {
+        if (!isset($this->collected['redirects'])) {
+            $this->getParsedHeader();
+        }
+
+        if (!isset($this->collected['redirects'])) {
+            return array();
+        }
+
+        return $this->collected['redirects'];
     }
 
     public function viewAllData()

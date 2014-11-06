@@ -21,7 +21,7 @@ class MySQL
         if ($this->connection) {
             mysqli_query($this->connection, 'SET CHARACTER SET utf8');
         } else {
-            Standards::debug('Failed to connect to database.', Standards::DO_EXIT);
+            Standards::debug('Database error: ' . mysqli_connect_error(), Standards::DO_EXIT);
         }
     }
 

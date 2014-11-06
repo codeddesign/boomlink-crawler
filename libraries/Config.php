@@ -65,10 +65,10 @@ class Config
     public static function getDBConfig()
     {
         return array(
-            'host' => '104.131.163.243',
+            'host' => 'localhost',
             'db_name' => 'site_analysis',
             'username' => 'root',
-            'password' => 'My6Celeb',
+            'password' => 'ad3l1n',
         );
     }
 } 
