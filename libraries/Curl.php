@@ -46,7 +46,7 @@ class Curl
         // curl options
         $this->curl_config = array(
             // defaults:
-            CURLOPT_CONNECTTIMEOUT => 3, // <- seconds
+            CURLOPT_CONNECTTIMEOUT => 15, // <- seconds
             CURLOPT_USERAGENT => "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36",
 
             // don't change:
