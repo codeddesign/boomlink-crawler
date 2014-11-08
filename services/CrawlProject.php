@@ -57,9 +57,7 @@ class CrawlProject extends Service
                     $saveBodyText[$un_parsed[$l_no]['id']] = $bp->getBodyText();
 
                     # collected data:
-                    $save[$l_no] = array(
-                        'links_info' => $bp->getLinkInfo(),
-                    );
+                    $save[$l_no] = $bp->getLinkInfo();
 
                     # avoid getting lists over the maxDepth;
                     $depth = ($un_parsed[$l_no]['depth'] + 1);
@@ -92,19 +90,38 @@ class CrawlProject extends Service
             }
 
             /* extra filtering before database interaction: */
-            $flipped_links = array_flip($links);
-            foreach ($flipped_links as $link => $l_no) {
-                if (isset($redirects[$link])) {
-                    // technically here we are removing the saved data of the ones which might be redirected to one of the links from the current set of X# links
-                    unset($save[$l_no]);
+            # checkout for duplicates:
+            $save_links = array();
+            foreach ($save as $s_no => $s_info) {
+                $save_links[] = $s_info['PageURL'];
+            }
+            $save_links = array_count_values($save_links);
+
+            # we are checking if any of the $save data, has links to redirects;
+            foreach ($save as $s_no => $s_info) {
+                $p_url = $s_info['PageURL'];
+                if (isset($redirects[$p_url]) OR $save_links[$p_url] > 1) {
+                    unset($save[$s_no]);
+                    $save_links[$p_url] -= 1;
                 }
             }
+
+            # 1. remove others:
+            $nextLinks = array_diff_key($nextLinks, $redirects);
+            $nextLinks = array_diff_key($nextLinks, $save_links);
+
+            $redirects = array_diff_key($redirects, $nextLinks);
+            $redirects = array_diff_key($redirects, $save_links);
+
+            # 2. remove possible duplicates:
+            $nextLinks = Standards::removePossibleDuplicates($nextLinks);
+            $redirects = Standards::removePossibleDuplicates($redirects);
 
             if (count($save) > 0) {
                 $this->saveLinkInfo($save, $un_parsed);
                 $this->saveBodyText($saveBodyText);
 
-                // determine if there are any already parsed:
+                # determine if there are any already parsed:
                 $nextLinks = $this->filterNotYetParsed($nextLinks);
                 if (count($nextLinks) > 0) {
                     $this->saveNextLinks($nextLinks);
@@ -120,10 +137,10 @@ class CrawlProject extends Service
             # do update of the parsed links to next status:
             $this->updateLinksByIds($updateIds);
 
-            # do pause:
-            Standards::doDelay($this->serviceName, rand(100, 300));
+            # small pause:
+            Standards::doDelay($this->serviceName . '[pid: ' . $this->getPID() . ' | domain_id: ' . $this->domain_id . ']', rand(100, 300));
 
-            # rain-check after work:
+            # get more links:
             $un_parsed = $this->getNonParsedLinks();
         }
 
@@ -212,12 +229,12 @@ class CrawlProject extends Service
         // build up table keys:
         $once = false;
         $tableKeys = array();
-        foreach ($saveData as $l_no => $info) {
+        foreach ($saveData as $l_no => $links_info) {
             if (!$once) {
                 $tableKeys['id'] = 0;
 
                 $i = 1;
-                foreach ($info['links_info'] as $key => $value) {
+                foreach ($links_info as $key => $value) {
                     if (!isset($tableKeys[$key])) {
                         $tableKeys[$key] = $i;
                         $i++;
@@ -231,8 +248,8 @@ class CrawlProject extends Service
         // create values:
         $values = array();
         $i = 0;
-        foreach ($saveData as $l_no => $info) {
-            foreach ($info['links_info'] as $key => $value) {
+        foreach ($saveData as $l_no => $links_info) {
+            foreach ($links_info as $key => $value) {
                 if (!isset($values[$i])) {
                     $values[$i] = '(' . $current_links[$l_no]['id'] . ', ';
                 }
@@ -288,6 +305,7 @@ class CrawlProject extends Service
         $all = array();
         foreach ($nextLinks as $link => $null) {
             $all = array_merge($all, Standards::generatePossibleLinks($link));
+            $keeper[implode('', Standards::getHostAndPathOnly($link))][] = $link;
         }
 
         foreach ($all as $a_no => $link) {
@@ -296,18 +314,26 @@ class CrawlProject extends Service
 
         $pattern = 'SELECT id, PageURL FROM page_main_info WHERE PageURL IN (%s)';
         $q = sprintf($pattern, implode(',', $all));
-        $r = $this->dbo->getResults($q);
+        $inDB = $this->dbo->getResults($q);
 
-        if ($r == FALSE) {
+        /*echo '#db:';
+        Standards::debug($inDB);*/
+
+        if ($inDB == FALSE) {
             return $nextLinks;
         } else {
-            foreach ($r as $r_no => $info) {
-                if (isset($nextLinks[$info['PageURL']])) {
-                    unset($nextLinks[$info['PageURL']]);
+            foreach ($inDB as $i_no => $info) {
+                $db_link = implode('', Standards::getHostAndPathOnly($info['PageURL']));
+                if (isset($keeper[$db_link])) {
+                    foreach ($keeper[$db_link] as $k_no => $k_link) {
+                        unset($nextLinks[$k_link]);
+                    }
                 }
             }
         }
 
+        /*echo '#result:';
+        Standards::debug($nextLinks);*/
         return $nextLinks;
     }
 

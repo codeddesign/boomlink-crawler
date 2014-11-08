@@ -55,10 +55,12 @@ class ProjectListener extends Service
 
                     # 'non-waitable' data:
                     $this->runService('CrawlProject', $params);
-                    $this->runService('ApiData', $params);
 
                     # keep track of the 'crawled' domain:
                     $this->crawlingDomains[$info['domain_name']] = '';
+
+                    # run api data:
+                    $this->runService('ApiData', $params);
                 }
 
                 # wait for 'waitable' services:
@@ -69,8 +71,8 @@ class ProjectListener extends Service
                 $this->saveCollectedData();
             }
 
-            // ...
-            Standards::doPause($this->serviceName, 3);
+            // pause:
+            Standards::doPause($this->serviceName . '[pid (parent): ' . $this->getPID() . ']', 5);
 
             # $RUN = false;
             # Standards::debug('temporary exit!', Standards::DO_EXIT);
@@ -127,11 +129,13 @@ class ProjectListener extends Service
         // create values[] to be inserted to db:
         $patternValues = '(%s, \'%s\', \'%s\', \'%s\', \'%s\', \'%s\', \'%s\')';
         foreach ($tempData as $t_no => $info) {
-            foreach ($info as $i_key => $i_value) {
-                $info[$i_key] = addslashes($i_value);
-            }
+            if (is_array($info) AND isset($info['id']) AND $info['id'] !== NULL) {
+                foreach ($info as $i_key => $i_value) {
+                    $info[$i_key] = addslashes($i_value);
+                }
 
-            $values[] = sprintf($patternValues, $info['id'], $info['robots_file'], $info['server_ip'], $info['registration_date'], $info['server_location'], $info['hosting_company'], $info['status']);
+                $values[] = sprintf($patternValues, $info['id'], $info['robots_file'], $info['server_ip'], $info['registration_date'], $info['server_location'], $info['hosting_company'], $info['status']);
+            }
         }
 
         // create update keys:
@@ -165,7 +169,7 @@ class ProjectListener extends Service
         }
 
         foreach ($this->allProjects as $c_no => $info) {
-            if ($info['Status'] == 0 OR !isset($this->crawlingDomains[$info['domain_name']])) {
+            if (!isset($this->crawlingDomains[$info['domain_name']])) {
                 $newOnes[] = $info;
             }
         }

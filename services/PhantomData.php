@@ -18,7 +18,7 @@ class PhantomData extends Service
 
             if ($this->urls === FALSE) {
                 #$RUN = false;
-                Standards::doPause($this->serviceName, 5);
+                Standards::doPause($this->serviceName . '[pid: ' . $this->getPID() . ']', 5);
             } else {
                 //
                 $this->external_links = array();
@@ -39,7 +39,9 @@ class PhantomData extends Service
                 # save data:
                 $this->saveData();
                 $this->updateStatus();
-                Standards::doPause($this->serviceName, self::SECONDS_PAUSE);
+
+                # pause:
+                Standards::doPause($this->serviceName . '[pid: ' . $this->getPID() . ']', self::SECONDS_PAUSE);
             }
         }
     }

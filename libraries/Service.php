@@ -208,7 +208,9 @@ class Service
 
             # check to see if we got something to save first:
             if ($temp !== false AND is_array($temp) AND count($temp) > 0) {
-                $this->dataCollected[$waitedPIDs[$childPid]][] = $temp;
+                if (isset($waitedPIDs[$childPid])) {
+                    $this->dataCollected[$waitedPIDs[$childPid]][] = $temp;
+                }
             }
 
             # remove:

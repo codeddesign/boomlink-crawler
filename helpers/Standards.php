@@ -338,7 +338,7 @@ class Standards
             $milliseconds = rand(100, 300);
         }
 
-        if($service !== NULL) {
+        if ($service !== NULL) {
             self::debug($service . ' is sleeping ' . $milliseconds . 'mls');
         }
 
@@ -380,13 +380,27 @@ class Standards
      * @param $link
      * @return array
      */
-    public static function generatePossibleLinks($link)
+    public static function getHostAndPathOnly($link)
     {
         //get domain:
         $host = self::getHost($link);
 
         //get rest of the link after domain:
         $rest = substr($link, stripos($link, $host) + strlen($host));
+
+        return array(
+            'host' => $host,
+            'rest' => $rest,
+        );
+    }
+
+    /**
+     * @param $link
+     * @return array
+     */
+    public static function generatePossibleLinks($link)
+    {
+        $parts = self::getHostAndPathOnly($link);
 
         $patterns = array(
             "http://%s%s", "http://www.%s%s", "https://%s%s", "https://www.%s%s",
@@ -395,7 +409,7 @@ class Standards
 
         $links = array();
         for ($i = 0; $i < count($patterns); $i++) {
-            $temp = sprintf($patterns[$i], $host, $rest);
+            $temp = sprintf($patterns[$i], $parts['host'], $parts['rest']);
             if (strrpos($temp, "//") == strlen($temp) - 2) {
                 $temp = substr($temp, 0, strrpos($temp, "//"));
             }
@@ -404,5 +418,54 @@ class Standards
         }
 
         return $links;
+    }
+
+    private static function sortByKeyLength($a, $b)
+    {
+        if (strlen($a) == strlen($b)) {
+            return 0;
+        }
+
+        if (strlen($a) > strlen($b)) {
+            return 1;
+        }
+
+        return -1;
+    }
+
+    /**
+     * @param array $nextLinks
+     * @return array
+     */
+    public static function removePossibleDuplicates(array $nextLinks)
+    {
+        uksort($nextLinks, array('Standards', 'sortByKeyLength'));
+        foreach ($nextLinks as $link => $null) {
+            $p_links = Standards::generatePossibleLinks($link);
+            foreach ($p_links as $p_no => $p_link) {
+                if ($p_link !== $link AND isset($nextLinks[$p_link])) {
+                    unset($nextLinks[$link]);
+                }
+            }
+        }
+
+        return $nextLinks;
+    }
+
+    /**
+     * @param $link
+     * @param array $links
+     * @return bool
+     */
+    public static function linkMightExistIn($link, array $links)
+    {
+        $p_links = Standards::generatePossibleLinks($link);
+        foreach ($p_links as $p_no => $p_link) {
+            if (isset($links[$p_link])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

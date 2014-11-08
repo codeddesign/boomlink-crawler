@@ -30,7 +30,7 @@ if (!isset($_POST['atOnce']) OR $_POST['atOnce'] == 0) {
 $rules = array(
     'atOnce' => trim($_POST['atOnce']),
     'botName' => trim($_POST['botName']),
-    'maxDepth' => '99',
+    'maxDepth' => '3',
 );
 
 $url = trim($_POST['url']);

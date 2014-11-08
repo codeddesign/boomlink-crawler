@@ -129,8 +129,8 @@ class ProxyData extends Service
                     # update status:
                     $this->updateStatus();
 
-                    # make small delay:
-                    Standards::doDelay($this->serviceName, rand(100, 300));
+                    # small pause:
+                    Standards::doDelay($this->serviceName . '[pid: ' . $this->getPID() . ']', rand(100, 300));
                 }
             }
         }

@@ -53,7 +53,9 @@ class ApiData extends Service
                 # save data:
                 $this->saveData();
                 $this->updateStatus();
-                Standards::doPause('ApiData', self::SECONDS_PAUSE);
+
+                # pause:
+                Standards::doPause($this->serviceName . '[pid: ' . $this->getPID() . ' | domain_id: ' . $this->domain_id . ']', self::SECONDS_PAUSE);
             }
         }
     }
