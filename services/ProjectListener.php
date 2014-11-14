@@ -12,7 +12,7 @@
 
 class ProjectListener extends Service
 {
-    private $dbo, $crawlingDomains, $allProjects;
+    private $dbo, $allProjects;
 
     /**
      * do some sets:
@@ -21,7 +21,6 @@ class ProjectListener extends Service
     {
         // init db:
         $this->dbo = new MySQL();
-        $this->crawlingDomains = array();
 
         Standards::debug(__CLASS__ . ' (parent thread) is: ' . $this->getPID());
     }
@@ -44,16 +43,15 @@ class ProjectListener extends Service
                     $params = array(
                         'url' => $info['DomainURL'],
                         'domain_id' => $info['DomainURLIDX'],
+                        'domain_name' => $info['domain_name'],
                     );
 
                     /* run sub-services */
-                    # 'waitable' data:
                     if ($info['server_ip'] == '') {
-                        $this->runService('WhoIs', $params);
-                        $this->runService('RobotsFile', $params);
+                        $this->runService('DomainData', $params);
                     }
 
-                    # 'non-waitable' data:
+                    # .. :
                     $this->runService('CrawlProject', $params);
 
                     # keep track of the 'crawled' domain:
@@ -65,17 +63,13 @@ class ProjectListener extends Service
 
                 # wait for 'waitable' services:
                 $this->waitForFinish();
-
-                # save data if any:
-                $this->getDataCollected();
-                $this->saveCollectedData();
             }
 
             // pause:
             Standards::doPause($this->serviceName . '[pid (parent): ' . $this->getPID() . ']', 5);
 
             # $RUN = false;
-            # Standards::debug('temporary exit!', Standards::DO_EXIT);
+            Standards::debug('temporary exit!', Standards::DO_EXIT);
         }
     }
 
@@ -86,75 +80,6 @@ class ProjectListener extends Service
     {
         $q = 'SELECT * FROM status_domain';
         $this->allProjects = $this->dbo->getResults($q);
-    }
-
-    /**
-     * Expected data: whois / robotsfile
-     */
-    private function saveCollectedData()
-    {
-        $collected = $this->getDataCollected();
-        if (!is_array($collected) OR count($collected) == 0) {
-            return false;
-        }
-
-        // sets:
-        $values = $updateKeys = $tempData = array();
-        $notNeeded = array(
-            'domain',
-            'domain_id',
-        );
-
-        // merge info because it's related to same db table
-        $collected = array_values($collected);
-        foreach ($collected as $k_no => $info) {
-            foreach ($info as $i_no => $i) {
-                if (isset($collected[$k_no + 1])) {
-                    $tempData[$k_no] = array_merge($collected[$k_no][$i_no], $collected[$k_no + 1][$i_no]);
-
-                    // save needed ones or add more:
-                    $tempData[$k_no]['id'] = $tempData[$k_no]['domain_id'];
-                    $tempData[$k_no]['status'] = '1';
-
-                    // remove not needed ones:
-                    foreach ($notNeeded as $n_no => $key) {
-                        if (isset($tempData[$k_no][$key])) {
-                            unset($tempData[$k_no][$key]);
-                        }
-                    }
-                }
-            }
-        }
-
-        // create values[] to be inserted to db:
-        $patternValues = '(%s, \'%s\', \'%s\', \'%s\', \'%s\', \'%s\', \'%s\')';
-        foreach ($tempData as $t_no => $info) {
-            if (is_array($info) AND isset($info['id']) AND $info['id'] !== NULL) {
-                foreach ($info as $i_key => $i_value) {
-                    $info[$i_key] = addslashes($i_value);
-                }
-
-                $values[] = sprintf($patternValues, $info['id'], $info['robots_file'], $info['server_ip'], $info['registration_date'], $info['server_location'], $info['hosting_company'], $info['status']);
-            }
-        }
-
-        // create update keys:
-        $patternKeys = '%s=VALUES(%s)';
-        $tableKeys = array('DomainURLIDX', 'robots_file', 'server_ip', 'registration_date', 'server_location', 'hosting_company', 'Status');
-        foreach ($tableKeys as $k_no => $key) {
-            if ($key !== 'id') {
-                $updateKeys[] = sprintf($patternKeys, $key, $key);
-            }
-        }
-
-        // pre-check if any values:
-        if (count($values) > 0) {
-            $pattern = 'INSERT INTO status_domain (%s) VALUES %s ON DUPLICATE KEY UPDATE %s';
-            $q = sprintf($pattern, implode(',', $tableKeys), implode(',', $values), implode(',', $updateKeys));
-            $this->dbo->runQuery($q);
-        }
-
-        return true;
     }
 
     /**

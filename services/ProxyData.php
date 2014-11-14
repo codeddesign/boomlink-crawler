@@ -166,6 +166,7 @@ class ProxyData extends Service
                     $this->dataCollected[$key] = $result;
                     break;
                 case 'facebook':
+                    Standards::debugToFile($content, 1);
                     $xml = simplexml_load_string($content);
                     $arr = json_decode(json_encode($xml), true);
                     if (!isset($arr['link_stat'])) {

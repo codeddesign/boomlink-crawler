@@ -151,6 +151,7 @@ class Curl
         $running = null;
         do {
             curl_multi_exec($mh, $running);
+            Standards::doDelay(NULL, rand(10, 50));
         } while ($running > 0);
 
         // remove handles:

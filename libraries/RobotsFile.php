@@ -1,35 +1,37 @@
 <?php
 
-class RobotsFile extends Service
+class RobotsFile
 {
-    private $link;
+    private $link, $data;
 
     /**
      * @param array $arguments
      */
-    public function doSets(array $arguments = array('url' => '', 'domain_id' => ''))
+    public function __construct(array $arguments = array('url' => '', 'domain_id' => ''))
     {
         $this->link = trim($arguments['url']);
-        $this->dataCollected = array(
+        $this->data = array(
             'domain' => Standards::getHost($this->link),
             'domain_id' => $arguments['domain_id']
         );
+
+        $this->doWork();
     }
 
     /**
      * Runs a curl to the robots.txt file of the given link and it's saves the body to $collectedData if the files is found.
      */
-    public function doWork()
+    private function doWork()
     {
         $curl = new Curl(FALSE);
         $curl->addLinks($this->getRobotsLink());
         $curl->run();
 
         $curlInfo = $curl->getLinkCurlInfo();
-        if ($curlInfo['http_code'] == '200') {
-            $this->dataCollected['robots_file'] = $curl->getBodyOnly();
+        if (substr($curlInfo['http_code'], 0, 2) == '20') {
+            $this->data['robots_file'] = $curl->getBodyOnly();
         } else {
-            $this->dataCollected['robots_file'] = FALSE;
+            $this->data['robots_file'] = FALSE;
         }
     }
 
@@ -45,5 +47,13 @@ class RobotsFile extends Service
 
         $parts = parse_url($this->link);
         return $parts['scheme'] . '://' . $parts['host'] . '/robots.txt';
+    }
+
+    /**
+     * @return array
+     */
+    public function getData()
+    {
+        return $this->data;
     }
 }

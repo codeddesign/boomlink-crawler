@@ -15,7 +15,6 @@ class PhantomData extends Service
         $RUN = true;
         while ($RUN !== false) {
             $this->urls = $this->getProjectLinks();
-
             if ($this->urls === FALSE) {
                 #$RUN = false;
                 Standards::doPause($this->serviceName . '[pid: ' . $this->getPID() . ']', 5);
@@ -114,7 +113,6 @@ class PhantomData extends Service
                     $temp = json_decode($content, true);
                     if (!is_array($temp)) {
                         $temp = array(
-                            'url' => $this->urls[$link_id]['PageURL'],
                             'duration' => 'n/a',
                             'size' => 'n/a',
                         );
@@ -122,7 +120,6 @@ class PhantomData extends Service
 
                     $this->dataCollected[$link_id]['page_weight'] = $temp['size'];
                     $this->dataCollected[$link_id]['load_time'] = $temp['duration'];
-                    # $this->dataCollected[$link_id]['ignore_it'] = $temp['url'];
                     break;
             }
         }

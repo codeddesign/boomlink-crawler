@@ -6,15 +6,15 @@
  * - do more tests, remove dubbing code
  * */
 
-class WhoIs extends Service
+class WhoIs
 {
-    CONST PORT = 43, TIMEOUT = 5, DEBUG = true;
-    private $domain, $tld, $ip, $whois_server, $servers, $special_whois, $errNo, $errMsg, $registration_keys, $_default, $_domain_id;
+    CONST PORT = 43, TIMEOUT = 5;
+    private $domain, $tld, $ip, $whois_server, $servers, $special_whois, $errNo, $errMsg, $registration_keys, $_default, $data;
 
     /**
      * @param $arguments
      */
-    public function doSets(array $arguments = array('url' => '', 'domain_id' => ''))
+    public function __construct(array $arguments = array('url' => '', 'domain_id' => ''))
     {
         // set domain:
         $this->domain = Standards::getHost($arguments['url']);
@@ -62,38 +62,41 @@ class WhoIs extends Service
 
         // set default:
         $this->_default = Standards::getDefaultNetworkRecord();
-        $this->dataCollected = Standards::getDefaultNetworkRecord();
+        $this->data = Standards::getDefaultNetworkRecord();
 
         // start collecting data:
-        $this->dataCollected = array(
+        $this->data = array(
             'domain_id' => $arguments['domain_id'],
             'domain' => $this->domain,
         );
+
+
+        $this->doWork();
     }
 
     /**
      * starts fetching information:
      */
-    public function doWork()
+    private function doWork()
     {
         /* set 'whois' server: */
         $resp = $this->set_whois_server();
         //Standards::debug($resp);
 
         /* set ip: */
-        $this->dataCollected['server_ip'] = $this->ip;
+        $this->data['server_ip'] = $this->ip;
 
         /* get 'created/registration date': */
         $resp = $this->get_info_domain();
-        $this->dataCollected['registration_date'] = $this->determineRegistrationDate($resp);
+        $this->data['registration_date'] = $this->determineRegistrationDate($resp);
         //Standards::debug($resp);
 
         /* get ip, server location, hosting company: */
         $resp = $this->get_info_network();
         //Standards::debug($resp);
 
-        $this->dataCollected['server_location'] = $this->determineCountry($resp);
-        $this->dataCollected['hosting_company'] = $this->determineHostingCompany($resp);
+        $this->data['server_location'] = $this->determineCountry($resp);
+        $this->data['hosting_company'] = $this->determineHostingCompany($resp);
     }
 
     /**
@@ -149,7 +152,7 @@ class WhoIs extends Service
     {
         $parsed = $this->parse_response($this->socket_request($this->servers['whois'], $this->tld . '.'));
 
-        // get dataCollected data only:
+        // get data data only:
         if (isset($parsed['whois'])) {
             $this->whois_server = $parsed['whois'];
         } else {
@@ -267,5 +270,13 @@ class WhoIs extends Service
         } else {
             return $parsed;
         }
+    }
+
+    /**
+     * @return array
+     */
+    public function getData()
+    {
+        return $this->data;
     }
 }

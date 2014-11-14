@@ -360,6 +360,32 @@ class Standards
      * @param $msg
      * @param bool $exit
      */
+    public static function debugToFile($msg, $exit = FALSE)
+    {
+        if (self::DEBUG) {
+            ob_start();
+            if (is_array($msg)) {
+                print_r($msg);
+            } else {
+                echo $msg;
+            }
+            echo "\n";
+
+            $content = ob_get_contents();
+            ob_end_clean();
+            error_log($content);
+        }
+
+        if ($exit) {
+            self::debugToFile($msg);
+            exit(-1);
+        }
+    }
+
+    /**
+     * @param $msg
+     * @param bool $exit
+     */
     public static function debug($msg, $exit = false)
     {
         if (self::DEBUG) {

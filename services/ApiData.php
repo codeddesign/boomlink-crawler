@@ -2,17 +2,16 @@
 
 class ApiData extends Service
 {
-    private $arguments, $domain_id, $dbo, $external_links, $urls, $link_ids, $curl;
+    private $arguments, $dbo, $external_links, $urls, $link_ids, $curl;
     CONST MAX_LINKS = 5, SECONDS_PAUSE = 1;
 
     /**
      * [!IMPORTANT] $arguments is an array of arrays holding links to be parsed and another needed information
      * @param array $arguments
      */
-    public function doSets(array $arguments = array('domain_id' => ''))
+    public function doSets(array $arguments = array('domain_id' => '', 'domain_name' => ''))
     {
         $this->arguments = $arguments;
-        $this->domain_id = $arguments['domain_id'];
         $this->dbo = new MySQL();
     }
 
@@ -55,7 +54,7 @@ class ApiData extends Service
                 $this->updateStatus();
 
                 # pause:
-                Standards::doPause($this->serviceName . '[pid: ' . $this->getPID() . ' | domain_id: ' . $this->domain_id . ']', self::SECONDS_PAUSE);
+                Standards::doPause($this->serviceName . '[pid: ' . $this->getPID() . ' | domain_id: ' . $this->arguments['domain_name'] . ']', self::SECONDS_PAUSE);
             }
         }
     }
@@ -111,7 +110,7 @@ class ApiData extends Service
     private function getProjectLinks()
     {
         $pattern = 'SELECT * FROM page_main_info WHERE DomainURLIDX=%d AND api_data_status=%d LIMIT %d';
-        $q = sprintf($pattern, $this->domain_id, Config::CURRENT_STATUS, self::MAX_LINKS);
+        $q = sprintf($pattern, $this->arguments['domain_id'], Config::CURRENT_STATUS, self::MAX_LINKS);
         return $this->dbo->getResults($q);
     }
 

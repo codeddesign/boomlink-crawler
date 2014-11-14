@@ -8,7 +8,7 @@ class CrawlProject extends Service
 {
     private $domain_id, $dbo, $project_config, $robots_file, $robots_rules;
 
-    public function doSets($arguments = array('domain_id'))
+    public function doSets($arguments = array('domain_id' => '', 'domain_name' => ''))
     {
         // default:
         $this->project_config = array();

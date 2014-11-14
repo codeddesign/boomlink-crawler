@@ -2,7 +2,7 @@
 
 class Service
 {
-    protected $serviceName, $servicePID, $PIDs, $servicesAvailable, $servicesWaitable, $dataCollected, $crawlers, $startTime;
+    protected $serviceName, $servicePID, $PIDs, $servicesAvailable, $servicesWaitable, $dataCollected, $crawlers, $startTime, $crawlingDomains;
 
     function __construct(array $servicesAvailable = array())
     {
@@ -92,14 +92,19 @@ class Service
     private function threadCreate($callback, $callbackArgs)
     {
         if ($this->servicePID == $this->getPID()) {
+            # few need pre-sets:
+            $temp_DomainName = (isset($callbackArgs['domain_name'])) ? $callbackArgs['domain_name'] : '';
+            $temp_ServiceName = strtolower($callback);
+
+            # ..
             $childPid = $this->threadFork();
-            $this->PIDs[$childPid] = strtolower($callback);
+            $this->PIDs[$childPid] = array(
+                'service' => $temp_ServiceName,
+                'domain_name' => $temp_DomainName,
+            );
 
             if (!$childPid) {
-                Standards::debug('created thread with pid:' . $this->getPID());
-
-                # random delay in milliseconds before thread's action:
-                Standards::doDelay();
+                Standards::debug('created thread with pid:' . $this->getPID() . ' [' . $temp_DomainName . ' > ' . $temp_ServiceName . ']');
 
                 /* child action: */
                 if (class_exists($callback)) {
@@ -108,11 +113,14 @@ class Service
 
                     # actual action:
                     $obj = $this->callService($callback, $callbackArgs);
-                    $collected = $obj->getDataCollected();
+                    /*$collected = */
+                    $obj->getDataCollected();
 
                     # save data:
-                    //Standards::debug($collected);
+                    /*
+                    Standards::debug($collected);
                     $this->memoryWrite($this->getPID(), $collected);
+                    */
                 } else if (function_exists($callback)) {
                     $this->callFunction($callback, $callbackArgs);
                 } else {
@@ -183,40 +191,57 @@ class Service
     }
 
     /**
-     * Waits for specific threads to end;
-     * @param array $PIDs
+     * Waits for threads to exit after work ('waitable' ones)
      */
-    protected function waitForFinish($PIDs = array())
+    protected function waitForFinish()
     {
         if (count($this->PIDs) == 0) {
             Standards::debug(__METHOD__ . ': No sub-processes running', Standards::DO_EXIT);
         }
 
         $waitedPIDs = $this->PIDs;
-        foreach ($waitedPIDs as $pid => $service) {
-            if (!array_key_exists($service, $this->servicesWaitable)) {
+        foreach ($waitedPIDs as $pid => $info) {
+            if (!array_key_exists($info['service'], $this->servicesWaitable)) {
                 unset($waitedPIDs[$pid]);
             }
         }
 
         while (count($waitedPIDs) > 0) {
-            //Standards::debug('complete list of pid\'s: ');
-            //Standards::debug($this->PIDs);
+            $childPid = pcntl_waitpid(-1, $status, WNOHANG);
 
-            $childPid = pcntl_waitpid(-1, $status);
+            /*
             $temp = $this->memoryRead($childPid);
-
             # check to see if we got something to save first:
             if ($temp !== false AND is_array($temp) AND count($temp) > 0) {
                 if (isset($waitedPIDs[$childPid])) {
                     $this->dataCollected[$waitedPIDs[$childPid]][] = $temp;
                 }
             }
+            */
 
-            # remove:
-            Standards::debug('child with pid: ' . $childPid . ' finished work (status=' . $status . ')');
-            unset($waitedPIDs[$childPid]);
-            unset($this->PIDs[$childPid]);
+            # removing child pids:
+            if ($childPid !== 0) {
+                Standards::debug('child with pid: ' . $childPid . ' finished work (status=' . $status . ')');
+
+                // needed un-sets - order matters !:
+                foreach ($this->PIDs as $tempPid => $info) {
+                    foreach ($this->crawlingDomains as $domain_name => $null) {
+                        if ($domain_name == $info['domain_name']) {
+                            unset($this->crawlingDomains[$domain_name]);
+                        }
+                    }
+                }
+
+                if (isset($waitedPIDs[$childPid])) {
+                    unset($waitedPIDs[$childPid]);
+                }
+
+                if (isset($this->PIDs[$childPid])) {
+                    unset($this->PIDs[$childPid]);
+                }
+            }
+
+            Standards::doDelay(NULL, rand(300, 500));
         }
     }
 
@@ -224,7 +249,7 @@ class Service
      * @param $pid
      * @return bool|mixed
      */
-    protected function memoryRead($pid)
+    private function memoryRead($pid)
     {
         $shm_data = false;
         $shm_id = @shmop_open($pid, 'a', 0, 0);
@@ -245,7 +270,7 @@ class Service
      * @param $pid
      * @param array $data_arr
      */
-    protected function memoryWrite($pid, array $data_arr)
+    private function memoryWrite($pid, array $data_arr)
     {
         $data_str = Standards::json_encode_special($data_arr);
 

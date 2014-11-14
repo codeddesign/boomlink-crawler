@@ -1,5 +1,6 @@
 .idea/
-test.php
-demo.php
-test.html
 info.txt
+demo*.php
+test*.php
+test*.html
+*.log
