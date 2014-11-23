@@ -46,7 +46,7 @@ class Config
         );
 
         if (!isset($delay[$for])) {
-            Standards::debugToFile('getDelay(): \'' . $for . '\' is not set.', Standards::DO_EXIT);
+            Standards::debug('getDelay(): \'' . $for . '\' is not set.', Standards::DO_EXIT);
         }
 
         return $delay[$for];
@@ -68,7 +68,7 @@ class Config
         );
 
         if (!isset($delay[$for])) {
-            Standards::debugToFile('getQueryLimit(): \'' . $for . '\' is not set.', Standards::DO_EXIT);
+            Standards::debug('getQueryLimit(): \'' . $for . '\' is not set.', Standards::DO_EXIT);
         }
 
         return $limit[$for];

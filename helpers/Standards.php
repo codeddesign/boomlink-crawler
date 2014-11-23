@@ -338,12 +338,12 @@ class Standards
     public static function doDelay($service = null, $seconds = 0)
     {
         if ($seconds == 0) {
-            $seconds = 1 / 2;
+            $seconds = .5;
         }
 
         $restTime = intval($seconds) * self::$oneSecondsMls;
         if ($service !== null) {
-            self::debug($service . ' is sleeping ' . $restTime . ' mls');
+            self::debug($service . ' is sleeping ' . $seconds . 's');
         }
 
         usleep($restTime);
@@ -352,10 +352,11 @@ class Standards
     /**
      * @param $msg
      * @param bool $exit
+     * @param bool $toFile
      */
-    public static function debugToFile($msg, $exit = false)
+    public static function debug($msg, $exit = false, $toFile = false)
     {
-        if (self::DEBUG) {
+        if ($toFile) {
             ob_start();
             if (is_array($msg)) {
                 print_r($msg);
@@ -369,15 +370,6 @@ class Standards
             error_log($content);
         }
 
-        self::debug($msg, $exit);
-    }
-
-    /**
-     * @param $msg
-     * @param bool $exit
-     */
-    public static function debug($msg, $exit = false)
-    {
         if (self::DEBUG) {
             if (is_array($msg)) {
                 print_r($msg);
