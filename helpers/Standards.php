@@ -356,6 +356,10 @@ class Standards
      */
     public static function debug($msg, $exit = false, $toFile = false)
     {
+        if (!self::DEBUG) {
+            $toFile = false;
+        }
+
         if ($toFile) {
             ob_start();
         }
