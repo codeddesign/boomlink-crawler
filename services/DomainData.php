@@ -1,6 +1,6 @@
 <?php
 
-class DomainData extends Service
+class DomainData extends Service implements ServiceInterface
 {
     private $params, $dbo;
 
@@ -25,7 +25,7 @@ class DomainData extends Service
         # save data:
         $this->saveCollectedData();
 
-        Standards::doDelay($this->serviceName, rand(5, 10));
+        Standards::doDelay($this->serviceName, 1/2);
     }
 
     /**

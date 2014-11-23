@@ -26,6 +26,54 @@ class Config
     const CURRENT_STATUS = 0, NEW_STATUS = 1;
 
     /**
+     * Time to delay in seconds. We can also accepts fractions.
+     *
+     * @param $for
+     * @return mixed
+     */
+    public static function getDelay($for)
+    {
+        $delay = array(
+            'wait_for_finish_pause' => 1,
+            'api_data_pause' => 1,
+            'crawl_project_pause' => 1,
+            'phantom_data_wait' => 5,
+            'phantom_data_pause' => 5,
+            'project_listener_pause' => 10,
+            'proxy_data_wait' => 5,
+            'proxy_data_pause' => (60 * 30), // 30min
+        );
+
+        if (!isset($delay[$for])) {
+            Standards::debugToFile('getDelay(): \'' . $for . '\' is not set.', Standards::DO_EXIT);
+        }
+
+        return $delay[$for];
+    }
+
+    /**
+     * Limit of links to get from db that will be processed at once.
+     * !! Exception: proxy data which corresponds to 6 different external links (google, bing, facebook, ..)
+     *
+     * @param $for
+     * @return mixed
+     */
+    public static function getQueryLimit($for)
+    {
+        $limit = array(
+            'proxy_data' => 1,
+            'phantom_data' => 5,
+            'api_data' => 5,
+        );
+
+        if (!isset($delay[$for])) {
+            Standards::debugToFile('getQueryLimit(): \'' . $for . '\' is not set.', Standards::DO_EXIT);
+        }
+
+        return $limit[$for];
+    }
+
+    /**
      * @param $keyName
      * @param $url
      * @return string
@@ -47,14 +95,17 @@ class Config
     public static function getConfessLink($url)
     {
         $replace = array(
-            '/8win/', # needed for local dev environment
-            '/var/www/html/',
-            '/var/www/',
-            '/services',
+            '/var/www/html',
+            '/var/www',
+            '/helpers',
             '/libraries',
+            '/services',
         );
 
         $path = str_ireplace($replace, '', __DIR__);
+        if (isset($path[0]) and $path[0] == '/') {
+            $path = substr($path, 1);
+        }
 
         return sprintf(self::$runConfessPattern, $path, $url);
     }

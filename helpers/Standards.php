@@ -2,8 +2,8 @@
 
 class Standards
 {
-    public static $default = 'n/a';
-    CONST DEBUG = TRUE, DO_EXIT = TRUE;
+    public static $default = 'n/a', $oneSecondsMls;
+    CONST DEBUG = true, DO_EXIT = true;
 
     /**
      * @param $link
@@ -52,6 +52,7 @@ class Standards
     public static function getTLD($host)
     {
         $parts = explode(".", $host);
+
         return $parts[count($parts) - 1];
     }
 
@@ -104,6 +105,7 @@ class Standards
             if (isset($matched[1][0])) {
                 $string = str_replace($matched[1][0] . 'T', $matched[1][0] . ' ', $string);
                 $parts = explode(' ', $string);
+
                 return $parts[0];
             }
         }
@@ -118,6 +120,7 @@ class Standards
     public static function getBodyText($text)
     {
         /*return utf8_decode(trim($text))*/;
+
         return trim($text);
     }
 
@@ -223,13 +226,14 @@ class Standards
      */
     public static function json_encode_special(array $string)
     {
-        $string = json_encode($string, TRUE);
+        $string = json_encode($string, true);
         $string = preg_replace_callback('/\\\\u([0-9a-f]{4})/i', function ($matches) {
                 $sym = mb_convert_encoding(
                     pack('H*', $matches[1]),
                     'UTF-8',
                     'UTF-16'
                 );
+
                 return $sym;
             },
             $string
@@ -244,8 +248,8 @@ class Standards
      */
     public static function getRobotsRules($robotsFileContent)
     {
-        if ($robotsFileContent == FALSE) {
-            return FALSE;
+        if ($robotsFileContent == false) {
+            return false;
         }
 
         // defaults:
@@ -328,39 +332,30 @@ class Standards
     }
 
     /**
-     * Purpose: do a random (100-300mls) or predefined (as parameter) sleep in milliseconds!
-     * @param string $service
-     * @param bool|int $milliseconds
-     */
-    public static function doDelay($service = NULL, $milliseconds = FALSE)
-    {
-        if (!$milliseconds) {
-            $milliseconds = rand(100, 300);
-        }
-
-        if ($service !== NULL) {
-            self::debug($service . ' is sleeping ' . $milliseconds . 'mls');
-        }
-
-        usleep($milliseconds);
-    }
-
-
-    /**
      * @param string $service
      * @param int $seconds
      */
-    public static function doPause($service = 'script', $seconds = 5)
+    public static function doDelay($service = null, $seconds)
     {
-        self::debug($service . ' is sleeping ' . $seconds . 's');
-        sleep($seconds);
+        $seconds = intval($seconds);
+
+        if (!$seconds) {
+            $seconds = 1 / 2 * self::$oneSecondsMls;
+        }
+
+        $restTime = $seconds * self::$oneSecondsMls;
+        if ($service !== null) {
+            self::debug($service . ' is sleeping ' . $restTime . ' mls');
+        }
+
+        usleep($restTime);
     }
 
     /**
      * @param $msg
      * @param bool $exit
      */
-    public static function debugToFile($msg, $exit = FALSE)
+    public static function debugToFile($msg, $exit = false)
     {
         if (self::DEBUG) {
             ob_start();
@@ -376,10 +371,7 @@ class Standards
             error_log($content);
         }
 
-        if ($exit) {
-            self::debugToFile($msg);
-            exit(-1);
-        }
+        self::debug($msg, $exit);
     }
 
     /**

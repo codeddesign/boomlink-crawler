@@ -1,11 +1,10 @@
 <?php
 
-class PhantomData extends Service
+class PhantomData extends Service implements ServiceInterface
 {
     private $dbo, $urls, $link_ids, $external_links, $curl;
-    CONST MAX_LINKS = 1, SECONDS_PAUSE = 1;
 
-    function doSets($arguments = array())
+    function doSets(array $arguments = array())
     {
         $this->dbo = new MySQL();
     }
@@ -17,7 +16,7 @@ class PhantomData extends Service
             $this->urls = $this->getProjectLinks();
             if ($this->urls === FALSE) {
                 #$RUN = false;
-                Standards::doPause($this->serviceName . '[pid: ' . $this->getPID() . ']', 5);
+                Standards::doDelay($this->serviceName . '[pid: ' . $this->getPID() . ']', 'phantom_data_wait');
             } else {
                 //
                 $this->external_links = array();
@@ -35,12 +34,16 @@ class PhantomData extends Service
                 // parse body's for needed data:
                 $this->parseApiData();
 
+                /*Standards::debug($this->external_links);
+                Standards::debug($this->dataCollected);*/
+
                 # save data:
                 $this->saveData();
                 $this->updateStatus();
 
                 # pause:
-                Standards::doPause($this->serviceName . '[pid: ' . $this->getPID() . ']', self::SECONDS_PAUSE);
+                Standards::doDelay($this->serviceName . '[pid: ' . $this->getPID() . ']', Config::getDelay('phantom_data_pause'));
+                $this->dataCollected = array();
             }
         }
     }
@@ -96,7 +99,7 @@ class PhantomData extends Service
     private function getProjectLinks()
     {
         $pattern = 'SELECT * FROM page_main_info WHERE phantom_data_status=%d LIMIT %d';
-        $q = sprintf($pattern, Config::CURRENT_STATUS, static::MAX_LINKS);
+        $q = sprintf($pattern, Config::CURRENT_STATUS, Config::getQueryLimit('phantom_data'));
         return $this->dbo->getResults($q);
     }
 

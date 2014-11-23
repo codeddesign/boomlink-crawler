@@ -6,11 +6,11 @@
  * - It also takes care of the proxy logic;
  * */
 
-class ProxyData extends Service
+class ProxyData extends Service implements ServiceInterface
 {
     private $dbo, $curl, $external_links, $proxies, $link_id;
 
-    public function doSets($arguments = NULL)
+    public function doSets(array $arguments = array())
     {
         $this->dbo = new MySQL();
     }
@@ -20,8 +20,8 @@ class ProxyData extends Service
      */
     private function getNonParsedLinks()
     {
-        $pattern = 'SELECT * FROM page_main_info WHERE proxy_data_status=%d LIMIT 1';
-        $q = sprintf($pattern, Config::CURRENT_STATUS);
+        $pattern = 'SELECT * FROM page_main_info WHERE proxy_data_status=%d LIMIT %d';
+        $q = sprintf($pattern, Config::CURRENT_STATUS, Config::getQueryLimit('proxy_data'));
         return $this->dbo->getResults($q);
     }
 
@@ -81,13 +81,13 @@ class ProxyData extends Service
             $un_parsed = $this->getNonParsedLinks();
             if (!$un_parsed) {
                 #$RUN = false;
-                Standards::doPause($this->serviceName, 5);
+                Standards::doDelay($this->serviceName, Config::getDelay('proxy_data_wait'));
             } else {
                 //
                 if (!isset($this->proxies[$i])) {
                     # resets:
                     $i = 0;
-                    Standards::doPause('ProxyData', 60 * 30); // 30min
+                    Standards::doDelay('ProxyData', Config::getDelay('proxy_data_pause'));
 
                     # update proxies:
                     $this->proxies = $this->getProxies();
@@ -130,7 +130,7 @@ class ProxyData extends Service
                     $this->updateStatus();
 
                     # small pause:
-                    Standards::doDelay($this->serviceName . '[pid: ' . $this->getPID() . ']', rand(100, 300));
+                    Standards::doDelay($this->serviceName . '[pid: ' . $this->getPID() . ']', 1 / 2);
                 }
             }
         }
@@ -166,8 +166,13 @@ class ProxyData extends Service
                     $this->dataCollected[$key] = $result;
                     break;
                 case 'facebook':
-                    Standards::debugToFile($content, 1);
-                    $xml = simplexml_load_string($content);
+                    try {
+                        $xml = simplexml_load_string($content);
+                    } catch (Exception $e) {
+                        // ..
+                        $xml = array();
+                    }
+
                     $arr = json_decode(json_encode($xml), true);
                     if (!isset($arr['link_stat'])) {
                         $arr = array(

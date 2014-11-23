@@ -27,6 +27,7 @@ class Service
     {
         if (!function_exists('posix_getpid')) {
             Standards::debug('posix_getpid(): does not exist.');
+
             return false;
         }
 
@@ -60,13 +61,13 @@ class Service
     /**
      * @param null $pid
      */
-    private function threadKill($pid = NULL)
+    private function threadKill($pid = null)
     {
         if (!function_exists('posix_kill')) {
             Standards::debug('posix_kill(): does not exist', Standards::DO_EXIT);
         }
 
-        if ($pid == NULL) {
+        if ($pid == null) {
             $pid = $this->getPID();
         }
 
@@ -113,16 +114,12 @@ class Service
 
                     # actual action:
                     $obj = $this->callService($callback, $callbackArgs);
-                    /*$collected = */
-                    $obj->getDataCollected();
+                    $collected = $obj->getDataCollected();
 
                     # save data:
-                    /*
-                    Standards::debug($collected);
-                    $this->memoryWrite($this->getPID(), $collected);
-                    */
-                } else if (function_exists($callback)) {
-                    $this->callFunction($callback, $callbackArgs);
+                    if ($this->isDataToSave($collected)) {
+                        $this->memoryWrite($this->getPID(), $collected);
+                    }
                 } else {
                     Standards::debug(__METHOD__ . ': Class/Function \'' . $callback . '\' does not exist.', Standards::DO_EXIT);
                 }
@@ -179,15 +176,12 @@ class Service
     }
 
     /**
-     * @param $function
-     * @param $arguments
-     * @return mixed
+     * @param $data
+     * @return bool
      */
-    protected function callFunction($function, $arguments)
+    private function isDataToSave($data)
     {
-        //Standards::debug(__METHOD__ . ': calling function');
-
-        return $function($arguments);
+        return ($data !== null AND $data !== false AND is_array($data) AND count($data) > 0);
     }
 
     /**
@@ -195,29 +189,22 @@ class Service
      */
     protected function waitForFinish()
     {
-        if (count($this->PIDs) == 0) {
-            Standards::debug(__METHOD__ . ': No sub-processes running', Standards::DO_EXIT);
-        }
-
         $waitedPIDs = $this->PIDs;
-        foreach ($waitedPIDs as $pid => $info) {
-            if (!array_key_exists($info['service'], $this->servicesWaitable)) {
-                unset($waitedPIDs[$pid]);
-            }
+
+        if (count($waitedPIDs) == 0) {
+            Standards::debug(__METHOD__ . ': No sub-processes running', Standards::DO_EXIT);
         }
 
         while (count($waitedPIDs) > 0) {
             $childPid = pcntl_waitpid(-1, $status, WNOHANG);
 
-            /*
-            $temp = $this->memoryRead($childPid);
             # check to see if we got something to save first:
-            if ($temp !== false AND is_array($temp) AND count($temp) > 0) {
+            $temp = $this->memoryRead($childPid);
+            if ($this->isDataToSave($temp)) {
                 if (isset($waitedPIDs[$childPid])) {
-                    $this->dataCollected[$waitedPIDs[$childPid]][] = $temp;
+                    $this->dataCollected[$childPid] = $temp;
                 }
             }
-            */
 
             # removing child pids:
             if ($childPid !== 0) {
@@ -225,9 +212,11 @@ class Service
 
                 // needed un-sets - order matters !:
                 foreach ($this->PIDs as $tempPid => $info) {
-                    foreach ($this->crawlingDomains as $domain_name => $null) {
-                        if ($domain_name == $info['domain_name']) {
-                            unset($this->crawlingDomains[$domain_name]);
+                    if (is_array($this->crawlingDomains)) {
+                        foreach ($this->crawlingDomains as $domain_name => $null) {
+                            if ($domain_name == $info['domain_name']) {
+                                unset($this->crawlingDomains[$domain_name]);
+                            }
                         }
                     }
                 }
@@ -241,7 +230,7 @@ class Service
                 }
             }
 
-            Standards::doDelay(NULL, rand(300, 500));
+            Standards::doDelay(' Waiting for \'waitable\' threads to end .. ', Config::getDelay('wait_for_finish_pause'));
         }
     }
 
@@ -263,7 +252,7 @@ class Service
             return false;
         }
 
-        return json_decode($shm_data, TRUE);
+        return json_decode($shm_data, true);
     }
 
     /**

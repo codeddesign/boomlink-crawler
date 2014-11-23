@@ -15,7 +15,7 @@ class Curl
         $this->multi = $multi;
 
         // sets:
-        $this->links = $this->link_info = NULL;
+        $this->links = $this->link_info = null;
         $this->parsedCurlInfo = array();
 
         // needed: apply options
@@ -40,22 +40,22 @@ class Curl
         // changeable options
         $options_assoc = array(
             'timeout' => 'CURLOPT_CONNECTTIMEOUT',
-            'agent' => 'CURLOPT_USERAGENT',
+            'agent'   => 'CURLOPT_USERAGENT',
         );
 
         // curl options
         $this->curl_config = array(
             // defaults:
             CURLOPT_CONNECTTIMEOUT => 15, // <- seconds
-            CURLOPT_USERAGENT => "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36",
+            CURLOPT_USERAGENT      => "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36",
 
             // don't change:
-            CURLOPT_HEADER => TRUE,
-            CURLOPT_FOLLOWLOCATION => TRUE,
-            CURLOPT_RETURNTRANSFER => TRUE,
-            CURLOPT_FRESH_CONNECT => TRUE,
-            CURLOPT_SSL_VERIFYPEER => FALSE,
-            CURLOPT_PROXY => FALSE,
+            CURLOPT_HEADER         => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FRESH_CONNECT  => true,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_PROXY          => false,
         );
 
         // proxy handle:
@@ -79,12 +79,13 @@ class Curl
      */
     function run()
     {
-        if ($this->links === NULL) {
+        if ($this->links === null) {
             echo('Curl does no have any links set.');
+
             return false;
         }
 
-        if (!is_array($this->links)) {
+        if ((is_array($this->links) AND count($this->links) == 1) OR !is_array($this->links)) {
             $this->runSingle($this->links);
         } else {
             $this->runMultiple($this->links);
@@ -102,6 +103,7 @@ class Curl
         $con = curl_init();
         curl_setopt($con, CURLOPT_URL, Standards::getCleanURL($url));
         curl_setopt_array($con, $this->curl_config);
+
         return $con;
     }
 
@@ -147,20 +149,16 @@ class Curl
             curl_multi_add_handle($mh, $con[$u_key]);
         }
 
-        // run:
-        $running = null;
         do {
-            curl_multi_exec($mh, $running);
-            Standards::doDelay(NULL, rand(10, 50));
-        } while ($running > 0);
+            $mrc = curl_multi_exec($mh, $active);
+            Standards::doDelay(null, 1 / 2); // stop wasting CPU cycles and rest for a couple ms
+        } while ($mrc == CURLM_CALL_MULTI_PERFORM || $active);
 
-        // remove handles:
+        // save data:
         foreach ($con as $u_key => $c) {
-            // save some data first:
             $this->setLinkInfo($con[$u_key], $u_key);
             $temp_body = curl_multi_getcontent($con[$u_key]);
             $this->setBodyParts($temp_body, $u_key);
-            //var_dump(curl_error($con[$u_key]));
 
             curl_multi_remove_handle($mh, $con[$u_key]);
         }
@@ -176,7 +174,7 @@ class Curl
     protected function setBodyParts($content, $key = 0)
     {
         $this->content[$key] = trim(substr($content, $this->link_info[$key]['header_size']));
-        $this->header[$key] = ($this->curl_config[CURLOPT_HEADER] === FALSE) ? '' : trim(substr($content, 0, $this->link_info[$key]['header_size']));
+        $this->header[$key] = ($this->curl_config[CURLOPT_HEADER] === false) ? '' : trim(substr($content, 0, $this->link_info[$key]['header_size']));
     }
 
     /**
@@ -186,6 +184,7 @@ class Curl
     {
         if (count($this->header) == 1 AND !$this->multi) {
             $temp = array_values($this->header);
+
             return $temp[0];
         } else {
             return $this->header;
@@ -199,6 +198,7 @@ class Curl
     {
         if (count($this->content) == 1 AND !$this->multi) {
             $temp = array_values($this->content);
+
             return $temp[0];
         } else {
             return $this->content;
@@ -240,10 +240,12 @@ class Curl
 
         if (count($info) == 1 AND !$this->multi) {
             $this->parsedCurlInfo = $info[key($info)];
+
             return $info[key($info)];
         }
 
         $this->parsedCurlInfo = $info;
+
         return $info;
     }
 

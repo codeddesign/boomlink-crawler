@@ -10,14 +10,14 @@
  * 2. It creates a sub-process of ProxyData - that gets the links from db and adds more info to them
  * */
 
-class ProjectListener extends Service
+class ProjectListener extends Service implements ServiceInterface
 {
     private $dbo, $allProjects;
 
     /**
-     * do some sets:
+     * @param array $arguments
      */
-    public function doSets()
+    public function doSets(array $arguments = array())
     {
         // init db:
         $this->dbo = new MySQL();
@@ -28,8 +28,8 @@ class ProjectListener extends Service
     public function doWork()
     {
         # RUN: parallel sub-service ProxyData:
-        $this->runService('ProxyData', array());
-        $this->runService('PhantomData', array());
+//        $this->runService('ProxyData', array());
+//        $this->runService('PhantomData', array());
 
         // rest of logic:
         $RUN = TRUE;
@@ -52,13 +52,13 @@ class ProjectListener extends Service
                     }
 
                     # .. :
-                    $this->runService('CrawlProject', $params);
+//                    $this->runService('CrawlProject', $params);
 
                     # keep track of the 'crawled' domain:
                     $this->crawlingDomains[$info['domain_name']] = '';
 
                     # run api data:
-                    $this->runService('ApiData', $params);
+//                    $this->runService('ApiData', $params);
                 }
 
                 # wait for 'waitable' services:
@@ -66,10 +66,9 @@ class ProjectListener extends Service
             }
 
             // pause:
-            Standards::doPause($this->serviceName . '[pid (parent): ' . $this->getPID() . ']', 5);
+            Standards::doDelay($this->serviceName . '[pid-parent: ' . $this->getPID() . ']', Config::getDelay('project_listener_pause'));
 
             # $RUN = false;
-            Standards::debug('temporary exit!', Standards::DO_EXIT);
         }
     }
 

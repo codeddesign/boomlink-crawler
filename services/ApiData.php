@@ -1,9 +1,8 @@
 <?php
 
-class ApiData extends Service
+class ApiData extends Service implements ServiceInterface
 {
     private $arguments, $dbo, $external_links, $urls, $link_ids, $curl;
-    CONST MAX_LINKS = 5, SECONDS_PAUSE = 1;
 
     /**
      * [!IMPORTANT] $arguments is an array of arrays holding links to be parsed and another needed information
@@ -54,7 +53,7 @@ class ApiData extends Service
                 $this->updateStatus();
 
                 # pause:
-                Standards::doPause($this->serviceName . '[pid: ' . $this->getPID() . ' | domain_id: ' . $this->arguments['domain_name'] . ']', self::SECONDS_PAUSE);
+                Standards::doDelay($this->serviceName . '[pid: ' . $this->getPID() . ' | domain_id: ' . $this->arguments['domain_name'] . ']', Config::getDelay('api_data_pause'));
             }
         }
     }
@@ -110,7 +109,7 @@ class ApiData extends Service
     private function getProjectLinks()
     {
         $pattern = 'SELECT * FROM page_main_info WHERE DomainURLIDX=%d AND api_data_status=%d LIMIT %d';
-        $q = sprintf($pattern, $this->arguments['domain_id'], Config::CURRENT_STATUS, self::MAX_LINKS);
+        $q = sprintf($pattern, $this->arguments['domain_id'], Config::CURRENT_STATUS, Config::getQueryLimit('api_data'));
         return $this->dbo->getResults($q);
     }
 

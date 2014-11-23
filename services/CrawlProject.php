@@ -4,11 +4,11 @@
  * This class expects as arguments the domain_id which also corresponds to project id
  * It also create as sub-process the ApiData
  */
-class CrawlProject extends Service
+class CrawlProject extends Service implements ServiceInterface
 {
     private $domain_id, $dbo, $project_config, $robots_file, $robots_rules;
 
-    public function doSets($arguments = array('domain_id' => '', 'domain_name' => ''))
+    public function doSets(array $arguments = array('domain_id' => '', 'domain_name' => ''))
     {
         // default:
         $this->project_config = array();
@@ -25,125 +25,128 @@ class CrawlProject extends Service
             Standards::debug('Project with id ' . $this->domain_id . ' does not exist', Standards::DO_EXIT);
         }
 
-        $un_parsed = $this->getNonParsedLinks();
-        while ($un_parsed !== false AND count($un_parsed) > 0) {
-            // init curl:
-            $curl = new Curl();
-
-            // build links list:
-            $links = array();
-            $updateIds = array();
-            foreach ($un_parsed as $u_no => $info) {
-                $links[$u_no] = trim($info['PageURL']);
-                $updateIds[] = $info['id'];
-            }
-
-            $curl->addLinks($links);
-
-            // run curl:
-            $curl->run();
-
-            # body parse:
-            $curlInfoS = $curl->getLinkCurlInfo();
-            $bodyS = $curl->getBodyOnly();
-            $headerS = $curl->getHeaderOnly();
-
-            // holder:
-            $saveBodyText = $notCrawlableIds = $redirects = $nextLinks = $save = array();
-            foreach ($links as $l_no => $link) {
-                $bp = new BodyParse($link, $bodyS[$l_no], $headerS[$l_no], $curlInfoS[$l_no]);
-                if ($bp->isCrawlAllowed()) {
-                    # body text only:
-                    $saveBodyText[$un_parsed[$l_no]['id']] = $bp->getBodyText();
-
-                    # collected data:
-                    $save[$l_no] = $bp->getLinkInfo();
-
-                    # avoid getting lists over the maxDepth;
-                    $depth = ($un_parsed[$l_no]['depth'] + 1);
-                    if ($depth <= $this->project_config['maxDepth']) {
-                        $nextLinks = $bp->getCrawlableOnes($depth);
-                    }
-                } else {
-                    # save the one which might not allow indexing so it could be removed
-                    $notCrawlableIds[] = $un_parsed[$l_no]['id'];
-                }
-
-                // get redirects:
-                $temp = $bp->getRedirects();
-                if (count($temp) > 0) {
-                    foreach ($temp as $temp_link => $temp_info) {
-                        // we do not add (+1) to depth!
-                        $temp[$temp_link]['depth'] = $un_parsed[$l_no]['depth'];
-                    }
-
-                    $redirects = array_merge($redirects, $temp);
-                }
-            }
-
-            // remove from nextLinks the ones that don't abide robots.txt:
-            foreach ($nextLinks as $link => $null) {
-                $respects = Standards::respectsRobotsRules($this->robots_rules, $this->project_config['botName'], $link);
-                if (!$respects) {
-                    unset($nextLinks[$link]);
-                }
-            }
-
-            /* extra filtering before database interaction: */
-            # checkout for duplicates:
-            $save_links = array();
-            foreach ($save as $s_no => $s_info) {
-                $save_links[] = $s_info['PageURL'];
-            }
-            $save_links = array_count_values($save_links);
-
-            # we are checking if any of the $save data, has links to redirects;
-            foreach ($save as $s_no => $s_info) {
-                $p_url = $s_info['PageURL'];
-                if (isset($redirects[$p_url]) OR $save_links[$p_url] > 1) {
-                    unset($save[$s_no]);
-                    $save_links[$p_url] -= 1;
-                }
-            }
-
-            # 1. remove others:
-            $nextLinks = array_diff_key($nextLinks, $redirects);
-            $nextLinks = array_diff_key($nextLinks, $save_links);
-
-            $redirects = array_diff_key($redirects, $nextLinks);
-            $redirects = array_diff_key($redirects, $save_links);
-
-            # 2. remove possible duplicates:
-            $nextLinks = Standards::removePossibleDuplicates($nextLinks);
-            $redirects = Standards::removePossibleDuplicates($redirects);
-
-            if (count($save) > 0) {
-                $this->saveLinkInfo($save, $un_parsed);
-                $this->saveBodyText($saveBodyText);
-
-                # determine if there are any already parsed:
-                $nextLinks = $this->filterNotYetParsed($nextLinks);
-                if (count($nextLinks) > 0) {
-                    $this->saveNextLinks($nextLinks);
-                }
-            }
-
-            # it's important that this has to be AFTER saveLinkInfo(), otherwise if will get a DB conflict due to duplicated 'PageURL'
-            $this->saveRedirects($redirects);
-
-            # remove the ones that their body does not allow indexing:
-            $this->removeLinksByIds($notCrawlableIds);
-
-            # do update of the parsed links to next status:
-            $this->updateLinksByIds($updateIds);
+        $not_parsed = $this->getNonParsedLinks();
+        while ($not_parsed !== false AND count($not_parsed) > 0) {
+            $this->workLogic($not_parsed);
 
             # small pause:
-            Standards::doDelay($this->serviceName . '[pid: ' . $this->getPID() . ' | domain_id: ' . $this->domain_id . ']', rand(100, 300));
+            Standards::doDelay($this->serviceName . '[pid: ' . $this->getPID() . ' | domain_id: ' . $this->domain_id . ']', Config::getDelay('crawl_project_pause'));
 
             # get more links:
-            $un_parsed = $this->getNonParsedLinks();
+            $not_parsed = $this->getNonParsedLinks();
         }
 
+    }
+
+    /**
+     * @param $not_parsed
+     */
+    private function workLogic($not_parsed)
+    {
+        /* build links list: */
+        $links = array();
+        $updateIds = array();
+        foreach ($not_parsed as $u_no => $info) {
+            $links[$u_no] = trim($info['PageURL']);
+            $updateIds[] = $info['id'];
+        }
+
+        /* curl: */
+        $curl = new Curl();
+        $curl->addLinks($links);
+        $curl->run();
+
+        $curlInfoS = $curl->getLinkCurlInfo();
+        $bodyS = $curl->getBodyOnly();
+        $headerS = $curl->getHeaderOnly();
+
+        // holder:
+        $saveBodyText = $notCrawlableIds = $redirects = $nextLinks = $save = array();
+        foreach ($links as $l_no => $link) {
+            $bp = new BodyParse($link, $bodyS[$l_no], $headerS[$l_no], $curlInfoS[$l_no]);
+            if ($bp->isCrawlAllowed()) {
+                # body text only:
+                $saveBodyText[$not_parsed[$l_no]['id']] = $bp->getBodyText();
+
+                # collected data:
+                $save[$l_no] = $bp->getLinkInfo();
+                # avoid getting lists over the maxDepth;
+                $depth = ($not_parsed[$l_no]['depth'] + 1);
+                if ($depth <= $this->project_config['maxDepth']) {
+                    $nextLinks = $bp->getCrawlableOnes($depth);
+                }
+            } else {
+                # save the one which might not allow indexing so it could be removed
+                $notCrawlableIds[] = $not_parsed[$l_no]['id'];
+            }
+
+            // get redirects:
+            $temp = $bp->getRedirects();
+            if (count($temp) > 0) {
+                foreach ($temp as $temp_link => $temp_info) {
+                    // we do not add (+1) to depth!
+                    $temp[$temp_link]['depth'] = $not_parsed[$l_no]['depth'];
+                }
+
+                $redirects = array_merge($redirects, $temp);
+            }
+        }
+
+        // remove from nextLinks the ones that don't abide robots.txt:
+        foreach ($nextLinks as $link => $null) {
+            $respects = Standards::respectsRobotsRules($this->robots_rules, $this->project_config['botName'], $link);
+            if (!$respects) {
+                unset($nextLinks[$link]);
+            }
+        }
+
+        /* extra filtering before database interaction: */
+        # checkout for duplicates:
+        $save_links = array();
+        foreach ($save as $s_no => $s_info) {
+            $save_links[] = $s_info['PageURL'];
+        }
+        $save_links = array_count_values($save_links);
+
+        # we are checking if any of the $save data, has links to redirects;
+        foreach ($save as $s_no => $s_info) {
+            $p_url = $s_info['PageURL'];
+            if (isset($redirects[$p_url]) OR $save_links[$p_url] > 1) {
+                unset($save[$s_no]);
+                $save_links[$p_url] -= 1;
+            }
+        }
+
+        # 1. remove others:
+        $nextLinks = array_diff_key($nextLinks, $redirects);
+        $nextLinks = array_diff_key($nextLinks, $save_links);
+
+        $redirects = array_diff_key($redirects, $nextLinks);
+        $redirects = array_diff_key($redirects, $save_links);
+
+        # 2. remove possible duplicates:
+        $nextLinks = Standards::removePossibleDuplicates($nextLinks);
+        $redirects = Standards::removePossibleDuplicates($redirects);
+
+        if (count($save) > 0) {
+            $this->saveLinkInfo($save, $not_parsed);
+            $this->saveBodyText($saveBodyText);
+
+            # determine if there are any already parsed:
+            $nextLinks = $this->filterNotYetParsed($nextLinks);
+            if (count($nextLinks) > 0) {
+                $this->saveNextLinks($nextLinks);
+            }
+        }
+
+        # it's important that this has to be AFTER saveLinkInfo(), otherwise if will get a DB conflict due to duplicated 'PageURL'
+        $this->saveRedirects($redirects);
+
+        # remove the ones that their body does not allow indexing:
+        $this->removeLinksByIds($notCrawlableIds);
+
+        # do update of the parsed links to next status:
+        $this->updateLinksByIds($updateIds);
     }
 
     /**
@@ -173,6 +176,7 @@ class CrawlProject extends Service
 
         $pattern = 'INSERT INTO page_main_info (%s) VALUES %s ON DUPLICATE KEY UPDATE %s';
         $q = sprintf($pattern, implode(',', $tableKeys), implode(',', $values), implode(',', $updateKeys));
+
         return $this->dbo->runQuery($q);
     }
 
@@ -183,6 +187,7 @@ class CrawlProject extends Service
     {
         $pattern = 'SELECT * FROM page_main_info WHERE parsed_status=%d AND depth <= %d AND DomainURLIDX=%d LIMIT %d';
         $q = sprintf($pattern, Config::CURRENT_STATUS, $this->project_config['maxDepth'], $this->domain_id, $this->project_config['atOnce']);
+
         return $this->dbo->getResults($q);
     }
 
@@ -195,9 +200,10 @@ class CrawlProject extends Service
         $q = sprintf($pattern, $this->domain_id);
         $r = $this->dbo->getResults($q);
         if (count($r) > 0) {
-            $this->project_config = json_decode($r[0]['config'], TRUE);
+            $this->project_config = json_decode($r[0]['config'], true);
             $this->robots_file = $r[0]['robots_file'];
             $this->robots_rules = Standards::getRobotsRules($this->robots_file);
+
             return true;
         }
 
@@ -213,6 +219,7 @@ class CrawlProject extends Service
         if (count($linkIds) > 0) {
             $pattern = 'UPDATE page_main_info SET parsed_status=%d WHERE id IN (%s)';
             $q = sprintf($pattern, Config::NEW_STATUS, implode(',', $linkIds));
+
             return $this->dbo->runQuery($q);
         }
 
@@ -271,6 +278,7 @@ class CrawlProject extends Service
 
         $pattern = 'INSERT INTO page_main_info (%s) VALUES %s ON DUPLICATE KEY UPDATE %s';
         $q = sprintf($pattern, implode(',', $tableKeys), implode(',', $values), implode(',', $updateKeys));
+
         return $this->dbo->runQuery($q);
     }
 
@@ -288,6 +296,7 @@ class CrawlProject extends Service
 
         $pattern = 'INSERT INTO page_main_info (%s) VALUES %s';
         $q = sprintf($pattern, implode(',', $tableKeys), implode(',', $values));
+
         return $this->dbo->runQuery($q);
     }
 
@@ -319,7 +328,7 @@ class CrawlProject extends Service
         /*echo '#db:';
         Standards::debug($inDB);*/
 
-        if ($inDB == FALSE) {
+        if ($inDB == false) {
             return $nextLinks;
         } else {
             foreach ($inDB as $i_no => $info) {
@@ -334,6 +343,7 @@ class CrawlProject extends Service
 
         /*echo '#result:';
         Standards::debug($nextLinks);*/
+
         return $nextLinks;
     }
 
@@ -346,6 +356,7 @@ class CrawlProject extends Service
         if (count($linkIds) > 0) {
             $pattern = 'DELETE FROM page_main_info WHERE id IN (%s)';
             $q = sprintf($pattern, Config::NEW_STATUS, implode(',', $linkIds));
+
             return $this->dbo->runQuery($q);
         }
 
@@ -369,6 +380,7 @@ class CrawlProject extends Service
         }
 
         $q = 'INSERT INTO page_main_info_body (page_id, body) VALUES ' . implode(',', $values);
+
         return $this->dbo->runQuery($q);
     }
 }

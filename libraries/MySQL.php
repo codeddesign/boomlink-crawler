@@ -1,11 +1,9 @@
 <?php
 
-class MySQL
-{
+class MySQL {
     private $config, $connection;
 
-    function __construct()
-    {
+    function __construct() {
         $this->config = Config::getDBConfig();
 
         // connect:
@@ -15,8 +13,7 @@ class MySQL
     /**
      * connects to db:
      */
-    private function makeConnection()
-    {
+    private function makeConnection() {
         $this->connection = mysqli_connect($this->config['host'], $this->config['username'], $this->config['password'], $this->config['db_name']);
         if ($this->connection) {
             mysqli_query($this->connection, 'SET CHARACTER SET utf8');
@@ -28,8 +25,7 @@ class MySQL
     /**
      * @return bool
      */
-    private function connectionIsOk()
-    {
+    private function connectionIsOk() {
         $status = mysqli_ping($this->connection);
 
         if ($status) {
@@ -52,8 +48,7 @@ class MySQL
      * @param $query
      * @return bool|int|string
      */
-    public function runQuery($query)
-    {
+    public function runQuery($query) {
         if ($this->connectionIsOk()) {
             if (!($id = mysqli_query($this->connection, $query))) {
                 Standards::debug($query);
@@ -63,6 +58,7 @@ class MySQL
             return mysqli_insert_id($this->connection);
         } else {
             Standards::debug('Something went wrong with db connection.', Standards::DO_EXIT);
+
             return false;
         }
     }
@@ -71,9 +67,8 @@ class MySQL
      * @param $query
      * @return array|bool
      */
-    public function getResults($query)
-    {
-        $rows = FALSE;
+    public function getResults($query) {
+        $rows = false;
         if ($this->connectionIsOk()) {
             $handle = mysqli_query($this->connection, $query);
             if ($handle) {
@@ -84,6 +79,8 @@ class MySQL
                         $rows[] = $row;
                     }
                 }
+
+                mysqli_free_result($handle);
             } else {
                 Standards::debug($query);
                 Standards::debug(mysqli_error($this->connection), Standards::DO_EXIT);
@@ -93,16 +90,14 @@ class MySQL
         return $rows;
     }
 
-    public function endConnection()
-    {
+    public function endConnection() {
         if ($this->connection) {
             mysqli_close($this->connection);
             $this->connection = false;
         }
     }
 
-    function __destruct()
-    {
+    function __destruct() {
         $this->endConnection();
     }
 }
