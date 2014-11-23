@@ -332,18 +332,16 @@ class Standards
     }
 
     /**
-     * @param string $service
+     * @param null $service
      * @param int $seconds
      */
-    public static function doDelay($service = null, $seconds)
+    public static function doDelay($service = null, $seconds = 0)
     {
-        $seconds = intval($seconds);
-
-        if (!$seconds) {
-            $seconds = 1 / 2 * self::$oneSecondsMls;
+        if ($seconds == 0) {
+            $seconds = 1 / 2;
         }
 
-        $restTime = $seconds * self::$oneSecondsMls;
+        $restTime = intval($seconds) * self::$oneSecondsMls;
         if ($service !== null) {
             self::debug($service . ' is sleeping ' . $restTime . ' mls');
         }
