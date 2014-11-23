@@ -2,7 +2,7 @@
 
 class Standards
 {
-    public static $default = 'n/a', $oneSecondsMls;
+    public static $default = 'n/a', $oneSecondsMls = 1000000;
     CONST DEBUG = true, DO_EXIT = true;
 
     /**
