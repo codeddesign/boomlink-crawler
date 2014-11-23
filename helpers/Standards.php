@@ -358,16 +358,6 @@ class Standards
     {
         if ($toFile) {
             ob_start();
-            if (is_array($msg)) {
-                print_r($msg);
-            } else {
-                echo $msg;
-            }
-            echo "\n";
-
-            $content = ob_get_contents();
-            ob_end_clean();
-            error_log($content);
         }
 
         if (self::DEBUG) {
@@ -377,6 +367,11 @@ class Standards
                 echo $msg;
             }
             echo "\n";
+        }
+
+        if ($toFile) {
+            error_log(ob_get_contents());
+            ob_end_clean();
         }
 
         if ($exit) {
