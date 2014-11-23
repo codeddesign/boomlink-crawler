@@ -53,7 +53,7 @@ $DEFAULT = '{"url":"' . $url . '","duration":"n/a","size":"n/a"}';
 while (!$valuesOK AND $attempt < $max_attempts) {
     // ! keep order for $cmd_args
     $cmd_args = array(
-        # '/usr/bin/xvfb-run --auto-servernum', // needed because we are not running it in a window
+        '/usr/bin/xvfb-run --auto-servernum', // needed because we are not running it in a window
         '/usr/bin/phantomjs', // path to phantomJs app
         __DIR__ . '/confess.js "' . $url . '" performance', // path to confess.js
     );
