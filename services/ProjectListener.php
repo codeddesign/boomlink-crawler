@@ -28,8 +28,8 @@ class ProjectListener extends Service implements ServiceInterface
     public function doWork()
     {
         # RUN: parallel sub-service ProxyData:
-//        $this->runService('ProxyData', array());
-//        $this->runService('PhantomData', array());
+        $this->runService('ProxyData', array());
+        $this->runService('PhantomData', array());
 
         // rest of logic:
         $RUN = TRUE;
@@ -52,13 +52,13 @@ class ProjectListener extends Service implements ServiceInterface
                     }
 
                     # .. :
-//                    $this->runService('CrawlProject', $params);
+                    $this->runService('CrawlProject', $params);
 
                     # keep track of the 'crawled' domain:
                     $this->crawlingDomains[$info['domain_name']] = '';
 
                     # run api data:
-//                    $this->runService('ApiData', $params);
+                    $this->runService('ApiData', $params);
                 }
 
                 # wait for 'waitable' services:
