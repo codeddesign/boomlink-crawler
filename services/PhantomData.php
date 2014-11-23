@@ -16,7 +16,7 @@ class PhantomData extends Service implements ServiceInterface
             $this->urls = $this->getProjectLinks();
             if ($this->urls === FALSE) {
                 #$RUN = false;
-                Standards::doDelay($this->serviceName . '[pid: ' . $this->getPID() . ']', 'phantom_data_wait');
+                Standards::doDelay($this->serviceName . '[pid: ' . $this->getPID() . ']', Config::getDelay('phantom_data_wait'));
             } else {
                 //
                 $this->external_links = array();

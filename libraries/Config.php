@@ -42,6 +42,7 @@ class Config
             'project_listener_pause' => 10,
             'proxy_data_wait' => 5,
             'proxy_data_pause' => (60 * 30), // 30min
+            'curl_multi_exec_pause' => 1 / 2, // half a second
         );
 
         if (!isset($delay[$for])) {

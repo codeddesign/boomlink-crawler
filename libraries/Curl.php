@@ -151,7 +151,7 @@ class Curl
 
         do {
             $mrc = curl_multi_exec($mh, $active);
-            Standards::doDelay(null, 1 / 2); // stop wasting CPU cycles and rest for a couple ms
+            Standards::doDelay(null, Config::getDelay('curl_multi_exec_pause')); // stop wasting CPU cycles and rest for a couple ms
         } while ($mrc == CURLM_CALL_MULTI_PERFORM || $active);
 
         // save data:

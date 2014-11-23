@@ -130,7 +130,7 @@ class ProxyData extends Service implements ServiceInterface
                     $this->updateStatus();
 
                     # small pause:
-                    Standards::doDelay($this->serviceName . '[pid: ' . $this->getPID() . ']', 1 / 2);
+                    Standards::doDelay($this->serviceName. '[pid: ' . $this->getPID() . ']', Config::getDelay('proxy_data_wait'));
                 }
             }
         }
