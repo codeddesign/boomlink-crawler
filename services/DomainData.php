@@ -24,8 +24,6 @@ class DomainData extends Service implements ServiceInterface
 
         # save data:
         $this->saveCollectedData();
-
-        Standards::doDelay($this->serviceName, 1/2);
     }
 
     /**
