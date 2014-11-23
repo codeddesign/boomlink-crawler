@@ -4,4 +4,3 @@ demo*.php
 test*.php
 test*.html
 *.log
-CurlMulti.php
