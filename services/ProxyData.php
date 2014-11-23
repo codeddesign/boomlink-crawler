@@ -87,7 +87,7 @@ class ProxyData extends Service implements ServiceInterface
                 if (!isset($this->proxies[$i])) {
                     # resets:
                     $i = 0;
-                    Standards::doDelay('ProxyData', Config::getDelay('proxy_data_pause'));
+                    Standards::doDelay($this->serviceName, Config::getDelay('proxy_data_pause'));
 
                     # update proxies:
                     $this->proxies = $this->getProxies();
