@@ -44,10 +44,9 @@ function getRunning()
 
 /*
  * responses:
- * - started / stopped
+ * - started / killed / already
  * - on / off
- * - killed
-*/
+ */
 switch ($op) {
     case 'start':
         $msg = 'already';
