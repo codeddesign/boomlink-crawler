@@ -23,7 +23,7 @@ class RobotsFile
      */
     private function doWork()
     {
-        $curl = new Curl(FALSE);
+        $curl = new Curl();
         $curl->addLinks($this->getRobotsLink());
         $curl->run();
 

@@ -2,7 +2,7 @@
 
 class Curl
 {
-    private $curl_config, $curl_sets, $content, $header, $links, $link_info, $parsedCurlInfo, $multi;
+    private $curl_config, $curl_sets, $content, $header, $links, $link_info, $parsedCurlInfo;
 
 
     /**
@@ -12,8 +12,6 @@ class Curl
      */
     function __construct($multi = true, array $opts = array())
     {
-        $this->multi = $multi;
-
         // sets:
         $this->links = $this->link_info = null;
         $this->parsedCurlInfo = array();
@@ -40,22 +38,22 @@ class Curl
         // changeable options
         $options_assoc = array(
             'timeout' => 'CURLOPT_CONNECTTIMEOUT',
-            'agent'   => 'CURLOPT_USERAGENT',
+            'agent' => 'CURLOPT_USERAGENT',
         );
 
         // curl options
         $this->curl_config = array(
             // defaults:
             CURLOPT_CONNECTTIMEOUT => 15, // <- seconds
-            CURLOPT_USERAGENT      => "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36",
+            CURLOPT_USERAGENT => "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36",
 
             // don't change:
-            CURLOPT_HEADER         => true,
+            CURLOPT_HEADER => true,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FRESH_CONNECT  => true,
+            CURLOPT_FRESH_CONNECT => true,
             CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_PROXY          => false,
+            CURLOPT_PROXY => false,
         );
 
         // proxy handle:
@@ -81,12 +79,15 @@ class Curl
     {
         if ($this->links === null) {
             echo('Curl does no have any links set.');
-
             return false;
         }
 
-        if ((is_array($this->links) AND count($this->links) == 1) OR !is_array($this->links)) {
-            $this->runSingle($this->links);
+        if (!is_array($this->links)) {
+            $this->links[] = $this->links;
+        }
+
+        if (count($this->links) == 1) {
+            $this->runSingle($this->links[0]);
         } else {
             $this->runMultiple($this->links);
         }
@@ -122,8 +123,8 @@ class Curl
     protected function runSingle($url)
     {
         // run:
-        $content = curl_exec($con = $this->initSingleCurl($url));
-        // var_dump(curl_error($con));
+        $con = $this->initSingleCurl($url);
+        $content = curl_exec($con);
 
         // save some data first:
         $this->setLinkInfo($con);
@@ -182,13 +183,7 @@ class Curl
      */
     public function getHeaderOnly()
     {
-        if (count($this->header) == 1 AND !$this->multi) {
-            $temp = array_values($this->header);
-
-            return $temp[0];
-        } else {
-            return $this->header;
-        }
+        return $this->header;
     }
 
     /**
@@ -196,13 +191,7 @@ class Curl
      */
     public function getBodyOnly()
     {
-        if (count($this->content) == 1 AND !$this->multi) {
-            $temp = array_values($this->content);
-
-            return $temp[0];
-        } else {
-            return $this->content;
-        }
+        return $this->content;
     }
 
     private function parseCurlInfo()
@@ -236,12 +225,6 @@ class Curl
             foreach ($this->link_info as $key => $arr) {
                 $info[$key] = $needed;
             }
-        }
-
-        if (count($info) == 1 AND !$this->multi) {
-            $this->parsedCurlInfo = $info[key($info)];
-
-            return $info[key($info)];
         }
 
         $this->parsedCurlInfo = $info;

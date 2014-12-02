@@ -20,7 +20,7 @@ class Config
     );
 
     # local link that runs confess through phantomjs
-    private static $runConfessPattern = 'http://localhost/%s/scripts/run_confess.php?url=%s';
+    private static $runConfessPattern = 'http://localhost/%s/scripts/run_phantom.php?url=%s';
 
     # generic crawler's progress status for data updates:
     const CURRENT_STATUS = 0, NEW_STATUS = 1;
@@ -42,7 +42,7 @@ class Config
             'project_listener_pause' => 10,
             'proxy_data_wait' => 5,
             'proxy_data_pause' => (60 * 30), // 30min
-            'curl_multi_exec_pause' => 1 / 2, // half a second
+            'curl_multi_exec_pause' => 1
         );
 
         if (!isset($delay[$for])) {
@@ -67,7 +67,7 @@ class Config
             'api_data' => 5,
         );
 
-        if (!isset($delay[$for])) {
+        if (!isset($limit[$for])) {
             Standards::debug('getQueryLimit(): \'' . $for . '\' is not set.', Standards::DO_EXIT);
         }
 
@@ -117,10 +117,10 @@ class Config
     public static function getDBConfig()
     {
         return array(
-            'host' => '104.131.163.243',
+            'host' => 'localhost',
             'db_name' => 'site_analysis',
             'username' => 'root',
-            'password' => 'My6Celeb',
+            'password' => 'ad3l1n',
         );
     }
 } 

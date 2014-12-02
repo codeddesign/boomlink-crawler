@@ -186,9 +186,15 @@ class Service
 
     /**
      * Waits for threads to exit after work ('waitable' ones)
+     * @param bool $disabled
+     * @return bool
      */
-    protected function waitForFinish()
+    protected function waitForFinish($disabled = true)
     {
+        if ($disabled) {
+            return false;
+        }
+
         $waitedPIDs = $this->PIDs;
 
         if (count($waitedPIDs) == 0) {
@@ -232,6 +238,8 @@ class Service
 
             Standards::doDelay(' Waiting for \'waitable\' threads to end .. ', Config::getDelay('wait_for_finish_pause'));
         }
+
+        return true;
     }
 
     /**
@@ -297,5 +305,37 @@ class Service
     public function getDataCollected()
     {
         return $this->dataCollected;
+    }
+
+    protected function signalAdd()
+    {
+        $signals = array(
+            SIGTERM,
+            SIGHUP,
+            SIGINT,
+            SIGUSR1,
+        );
+
+        foreach ($signals as $s_no => $signal) {
+            pcntl_signal($signal, array($this, 'signalHandler'));
+        }
+    }
+
+    /**
+     * @param $sigNo
+     */
+    protected function signalHandler($sigNo)
+    {
+        # send message to end them:
+        foreach ($this->PIDs as $pid) {
+            posix_kill($pid, $sigNo);
+        }
+
+        # wait to finish:
+        foreach ($this->PIDs as $pid) {
+            pcntl_waitpid($pid, $status);
+        }
+
+        Standards::debug(null, Standards::DO_EXIT);
     }
 }

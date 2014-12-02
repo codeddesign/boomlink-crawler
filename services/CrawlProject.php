@@ -196,18 +196,28 @@ class CrawlProject extends Service implements ServiceInterface
      */
     private function getProjectRules()
     {
-        $pattern = 'SELECT config, robots_file FROM status_domain WHERE DomainURLIDX=%d';
-        $q = sprintf($pattern, $this->domain_id);
-        $r = $this->dbo->getResults($q);
+        $step = 0;
+
+        // robots file:
+        $r = $this->dbo->getResults('SELECT * FROM status_domain WHERE DomainURLIDX=' . $this->domain_id);
         if (count($r) > 0) {
-            $this->project_config = json_decode($r[0]['config'], true);
             $this->robots_file = $r[0]['robots_file'];
             $this->robots_rules = Standards::getRobotsRules($this->robots_file);
-
-            return true;
+            $step++;
         }
 
-        return false;
+        // crawler global config:
+        $r = $this->dbo->getResults('SELECT * FROM crawler_config');
+        if (count($r) > 0) {
+            $this->project_config = json_decode($r[0]['config'], true);
+            $step++;
+        }
+
+        if ($step !== 2) {
+            return false;
+        }
+
+        return true;
     }
 
     /**

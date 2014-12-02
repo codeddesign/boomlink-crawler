@@ -1,5 +1,7 @@
 #!/usr/bin/php -q
 <?php
+declare(ticks = 1);
+
 /* Load requirements: */
 require_once 'autoload.php';
 

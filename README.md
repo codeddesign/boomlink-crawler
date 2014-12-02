@@ -25,7 +25,7 @@ $ ProjectListener by default it creates 2 sub-services:
 
 - ProxyData - this service is using proxies in order to fetch information. It is running independent and it's getting the links from db that are not yet parsed. The status of this one is identified by column
 'proxy_data_status' in table 'page_main_info' which will change to 1 when it's completed. The reason why this is runnig like this, because it's hard to manage the current number of proxies on parallel sub-services per each project
-- PhantomData - this services makes http requests via curl to scripts/run_confess.php, which executes a phantomjs script that it's loading a parsed link and it returns the page weight (in kb) and load time (in seconds).
+- PhantomData - this services makes http requests via curl to scripts/run_phantom.php, which executes a phantomjs script that it's loading a parsed link and it returns the page weight (in kb) and load time (in seconds).
 The status of this service is identified by column 'phantom_data_status' in table 'page_main_info' which also will be 1 when it's completed. Right now, this script it's using a lot of resources. It's really hard to manage a lot
 of requests at a time. So it is slow, because it's dependent on all resources that are loading with that link (ads, images, css files, ajax requests, rendering itself, etc.). prosieben.de for example works kind of slow.
 In the future with a good server, this process might be recommended to be separated on a different server and run multiple concurrent requests per project. I recommend around 3-4 / project

@@ -12,16 +12,16 @@ if (isset($_GET['url'])) {
 require_once __DIR__ . '/../libraries/runPhantom.php';
 require_once __DIR__ . '/../helpers/Standards.php';
 
-// go:
-$rp = new RunPhantom(
-    array(
-        'xvfb_bin' => '/usr/bin/xvfb-run -a',
-        'phantom_bin' => '/usr/bin/phantomjs',
-        'confess_path' => __DIR__ . '/confess.js',
-        'link' => $url,
-        'mode' => 'performance',
-    )
+// needed params
+$params = array(
+    'xvfb_bin' => '/usr/bin/xvfb-run -a',
+    'phantom_bin' => '/usr/bin/phantomjs',
+    'js_script_path' => __DIR__.'/netsniff.js',
+    'link' => $url,
 );
+
+// go:
+$rp = new RunPhantom($params);
 
 $rp->run();
 exit($rp->getResult());

@@ -11,7 +11,7 @@ class RunPhantom
         }
 
         # sets:
-        $this->max_attempts = 5;
+        $this->max_attempts = 3;
         $this->cmd_params = $cmd_params;
         $this->default_response = '{"url":"' . $this->cmd_params['link'] . '","duration":"n/a","size":"n/a"}';
     }
@@ -23,9 +23,10 @@ class RunPhantom
         while (!$response AND $attempt < $this->max_attempts) {
             $response = shell_exec($this->getCmd());
             $response = $this->valuesAreOK($response);
+
             if (!$response) {
+                Standards::doDelay(null, rand(1, 3));
                 $attempt++;
-                Standards::doDelay(null, rand(1 / 4, 1 / 2));
             }
         }
 
@@ -50,7 +51,25 @@ class RunPhantom
     private function getCmd()
     {
         $c = $this->cmd_params;
-        return $c['xvfb_bin'] . ' ' . $c['phantom_bin'] . ' ' . $c['confess_path'] . ' ' . $this->getLink() . ' ' . $c['mode'];
+
+        return trim($c['xvfb_bin'] . ' ' . $c['phantom_bin'] . ' ' . $c['js_script_path'] . ' ' . $this->getLink());
+    }
+
+    /**
+     * @param $output
+     * @return bool
+     */
+    private function hasDelimiters($output)
+    {
+        if (stripos($output, '{') === false AND stripos($output, '}') === false) {
+            return false;
+        }
+
+        if (stripos($output, 'start-response:') === false OR stripos($output, ':end-response') === false) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -59,22 +78,18 @@ class RunPhantom
      */
     private function valuesAreOK($output)
     {
-        if ($output == NULL OR stripos($output, 'duration') == FALSE) {
-            return FALSE;
+        if ($output == NULL and !$this->hasDelimiters($output)) {
+            return false;
         }
 
-        if (stripos($output, '{') === FALSE AND stripos($output, '}') === FALSE) {
-            return FALSE;
-        }
-
-        $output = substr($output, strpos($output, '{'), strpos($output, '}') + 1);
+        $output = trim(substr($output, stripos($output, 'start-response:') + strlen('start-response:'), stripos($output, ':end-response') - strlen(':end-response') - 2));
         try {
             $output = json_decode($output, true);
         } catch (Exception $e) {
             // ..
         }
 
-        if (!is_array($output) OR stripos($output['duration'], 'nan') !== FALSE OR stripos($output['size'], 'nan') !== FALSE) {
+        if (!is_array($output)) {
             return false;
         }
 

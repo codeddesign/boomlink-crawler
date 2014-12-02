@@ -32,10 +32,7 @@ class PhantomData extends Service implements ServiceInterface
                 $this->curl->run();
 
                 // parse body's for needed data:
-                $this->parseApiData();
-
-                /*Standards::debug($this->external_links);
-                Standards::debug($this->dataCollected);*/
+                $this->parseData();
 
                 # save data:
                 $this->saveData();
@@ -103,7 +100,7 @@ class PhantomData extends Service implements ServiceInterface
         return $this->dbo->getResults($q);
     }
 
-    private function parseApiData()
+    private function parseData()
     {
         $bodies = $this->curl->getBodyOnly();
         foreach ($bodies as $key => $content) {
