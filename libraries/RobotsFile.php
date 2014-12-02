@@ -14,6 +14,7 @@ class RobotsFile
             'domain' => Standards::getHost($this->link),
             'domain_id' => $arguments['domain_id']
         );
+        $this->data['robots_file'] = false;
 
         $this->doWork();
     }
@@ -28,10 +29,8 @@ class RobotsFile
         $curl->run();
 
         $curlInfo = $curl->getLinkCurlInfo();
-        if (substr($curlInfo['http_code'], 0, 2) == '20') {
+        if (isset($curlInfo['http_code']) AND substr($curlInfo['http_code'], 0, 2) == '20') {
             $this->data['robots_file'] = $curl->getBodyOnly();
-        } else {
-            $this->data['robots_file'] = FALSE;
         }
     }
 

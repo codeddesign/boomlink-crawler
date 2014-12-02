@@ -83,14 +83,11 @@ class Curl
         }
 
         if (!is_array($this->links)) {
-            $this->links[] = $this->links;
+            $backup = $this->links;
+            $this->links = array($backup);
         }
 
-        if (count($this->links) == 1) {
-            $this->runSingle($this->links[0]);
-        } else {
-            $this->runMultiple($this->links);
-        }
+        $this->runMultiple($this->links);
 
         return true;
     }

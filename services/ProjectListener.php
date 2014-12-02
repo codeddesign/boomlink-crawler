@@ -28,7 +28,7 @@ class ProjectListener extends Service implements ServiceInterface
     public function doWork()
     {
         # RUN: parallel sub-service ProxyData:
-        //$this->runService('ProxyData', array());
+        $this->runService('ProxyData', array());
         $this->runService('PhantomData', array());
 
         // rest of logic:
