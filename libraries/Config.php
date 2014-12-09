@@ -42,7 +42,9 @@ class Config
             'project_listener_pause' => 10,
             'proxy_data_wait' => 5,
             'proxy_data_pause' => (60 * 30), // 30min
-            'curl_multi_exec_pause' => 1
+            'curl_multi_exec_pause' => 1,
+            'completed_listener_pause' => 10,
+            'completed_listener_delay' => 2,
         );
 
         if (!isset($delay[$for])) {
@@ -65,6 +67,7 @@ class Config
             'proxy_data' => 1,
             'phantom_data' => 5,
             'api_data' => 5,
+            'completed_listener' => 100,
         );
 
         if (!isset($limit[$for])) {
@@ -117,10 +120,10 @@ class Config
     public static function getDBConfig()
     {
         return array(
-            'host' => '104.131.163.243',
+            'host' => 'localhost', //'104.131.163.243',
             'db_name' => 'site_analysis',
             'username' => 'root',
-            'password' => 'My6Celeb',
+            'password' => 'ad3l1n', //'My6Celeb',
         );
     }
 } 

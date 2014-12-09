@@ -82,15 +82,15 @@ class ApiData extends Service implements ServiceInterface
         }
 
         // prepare values:
-        $pattern = '(%s, \'%s\', \'%s\', \'%s\')';
+        $pattern = '(%s, \'%s\', \'%s\', \'%s\', \'%s\')';
         $values = array();
         foreach ($this->dataCollected as $link_id => $info) {
-            $values[] = sprintf($pattern, $link_id, $info['sentimental'], $info['negative'], $info['positive']);
+            $values[] = sprintf($pattern, $link_id, $info['total_back_links'], $info['sentimental_negative'], $info['sentimental_positive'], $info['sentimental_type']);
         }
 
         // prepare update keys:
         $patternKeys = '%s=VALUES(%s)';
-        $tableKeys = array('id', 'sentimental', 'negative', 'positive');
+        $tableKeys = array('id', 'total_back_links', 'sentimental_negative', 'sentimental_positive', 'sentimental_type');
         $updateKeys = array();
         foreach ($tableKeys as $k_no => $key) {
             if ($key !== 'id') {
@@ -130,7 +130,7 @@ class ApiData extends Service implements ServiceInterface
                         $total = $arr['DataTables']['BackLinks']['Headers']['TotalBackLinks'];
                     }
 
-                    $this->dataCollected[$link_id]['sentimental'] = $total;
+                    $this->dataCollected[$link_id]['total_back_links'] = $total;
                     break;
                 case 'uclassify':
                     $xml = simplexml_load_string($content);
@@ -151,10 +151,25 @@ class ApiData extends Service implements ServiceInterface
                         }
                     }
 
-                    $this->dataCollected[$link_id]['negative'] = $save['negative'];
-                    $this->dataCollected[$link_id]['positive'] = $save['positive'];
+                    $this->dataCollected[$link_id]['sentimental_negative'] = $save['negative'];
+                    $this->dataCollected[$link_id]['sentimental_positive'] = $save['positive'];
+                    $this->dataCollected[$link_id]['sentimental_type'] = $this->getSentimentalType($save['negative'], $save['positive']);
                     break;
             }
         }
+    }
+
+    /**
+     * @param $negative
+     * @param $positive
+     * @return int
+     */
+    private function getSentimentalType($negative, $positive)
+    {
+        if ($negative == $positive) {
+            return Standards::SENTIMENTAL_NEUTRAL;
+        }
+
+        return ($negative > $positive) ? Standards::SENTIMENTAL_NEGATIVE : Standards::SENTIMENTAL_POSITIVE;
     }
 }

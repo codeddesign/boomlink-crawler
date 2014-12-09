@@ -3,7 +3,7 @@
 class Standards
 {
     public static $default = 'n/a', $oneSecondsMls = 1000000;
-    CONST DEBUG = true, DO_EXIT = true;
+    CONST DEBUG = true, DO_EXIT = true, SENTIMENTAL_NEGATIVE = 0, SENTIMENTAL_POSITIVE = 1, SENTIMENTAL_NEUTRAL = 2;
 
     /**
      * @param $link
@@ -161,7 +161,6 @@ class Standards
 
         return true;
     }
-
 
     /**
      * @param array $link
@@ -474,5 +473,49 @@ class Standards
         }
 
         return false;
+    }
+
+    /**
+     * @param array $data
+     * @return string
+     */
+    public static function json_encode_force_string(array $data)
+    {
+        foreach ($data as $d_key => $d_value) {
+            $d_value = trim($d_value);
+            if (is_numeric($d_value)) {
+                $data[$d_key] = (string)$d_value;
+            }
+        }
+
+        return json_encode($data, 1);
+    }
+
+    /**
+     * @param array $domains
+     * @return array
+     */
+    public static function getDomainsAge(array $domains)
+    {
+        $temp = array();
+        foreach ($domains as $d_no => $domain) {
+            $reg_date = strtolower(trim($domain['registration_date']));
+            $reg_date = ($reg_date == 'n/a') ? '' : $reg_date;
+
+            $temp[$domain['DomainURLIDX']] = ($reg_date == '') ? 0 : self::getDomainAgeByDate($reg_date);
+        }
+
+        return $temp;
+    }
+
+    /**
+     * @param $reg_date
+     * @return int
+     */
+    public static function getDomainAgeByDate($reg_date)
+    {
+        $date = new DateTime($reg_date);
+        $now = new DateTime();
+        return $now->diff($date)->y;
     }
 }
