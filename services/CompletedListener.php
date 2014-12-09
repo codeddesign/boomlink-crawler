@@ -93,7 +93,10 @@ class CompletedListener extends Service implements ServiceInterface
         foreach ($algorithm_config as $type => $p) {
             switch ($type) {
                 case 'incoming':
-                    $points += 0;
+                    $back_links = ($cl['total_back_links'] == '') ? 0 : ($cl['total_back_links']);
+                    if($back_links > 0) {
+                        $points += $p * $back_links;
+                    }
                     break;
                 case 'outgoing':
                     $links = $cl['follow_links'] + $cl['no_follow_links'];
