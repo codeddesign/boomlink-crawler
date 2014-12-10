@@ -1,6 +1,3 @@
 .idea/
-info.txt
-demo*.php
-test*.php
-test*.html
+_stuff/
 *.log

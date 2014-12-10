@@ -17,9 +17,7 @@ class CompletedListener extends Service implements ServiceInterface
             $algorithms = $this->getAlgorithms();
             $this->domains = $this->getDomainsAge();
 
-            if (count($algorithms) === 0 OR count($this->domains) === 0) {
-                Standards::doDelay($this->serviceName . '[pause]', Config::getDelay('completed_listener_pause'));
-            } else {
+            if(is_array($algorithms) AND count($algorithms) AND count($this->domains)) {
                 foreach ($algorithms as $a_no => $algorithm) {
                     $linksStats = array();
                     $completedLinks = $this->getCompletedLinks($algorithm['id']);
@@ -37,6 +35,8 @@ class CompletedListener extends Service implements ServiceInterface
 
                     Standards::doDelay($this->serviceName . '[delay]', Config::getDelay('completed_listener_delay'));
                 }
+            } else {
+                Standards::doDelay($this->serviceName . '[pause]', Config::getDelay('completed_listener_pause'));
             }
 
             #$run = false;
@@ -49,11 +49,12 @@ class CompletedListener extends Service implements ServiceInterface
      */
     private function getCompletedLinks($algorithm_id)
     {
-        $q['select'] = 'SELECT * FROM page_main_info';
-        $q['conditions'] = 'WHERE parsed_status=%d AND api_data_status=%d AND proxy_data_status=%d AND phantom_data_status=%d AND sentimental_positive IS NOT NULL AND completed_algos NOT LIKE \'%%"%d"%%\'';
-        $q['extra'] = 'LIMIT %d';
+        $q_p['select'] = 'SELECT * FROM page_main_info';
+        $q_p['conditions'] = 'WHERE parsed_status=%d AND api_data_status=%d AND proxy_data_status=%d AND phantom_data_status=%d AND sentimental_positive IS NOT NULL AND completed_algos NOT LIKE \'%%"%d"%%\'';
+        $q_p['extra'] = 'LIMIT %d';
 
-        return $this->dbo->getResults(sprintf(implode(' ', $q), Config::NEW_STATUS, Config::NEW_STATUS, Config::NEW_STATUS, Config::NEW_STATUS, $algorithm_id, Config::getQueryLimit('completed_listener')));
+        $q = sprintf(implode(' ', $q_p), Config::NEW_STATUS, Config::NEW_STATUS, Config::NEW_STATUS, Config::NEW_STATUS, $algorithm_id, Config::getQueryLimit('completed_listener'));
+        return $this->dbo->getResults($q);
     }
 
     /**

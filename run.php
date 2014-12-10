@@ -19,6 +19,7 @@ $services = array(
     array('class' => 'ApiData', 'wait' => false),
     array('class' => 'ProxyData', 'wait' => false),
     array('class' => 'PhantomData', 'wait' => false),
+    array('class' => 'CompletedListener', 'wait' => false),
 );
 
 # RUN:

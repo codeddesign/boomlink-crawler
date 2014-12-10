@@ -9,7 +9,7 @@ if (isset($_GET['url'])) {
 }
 
 // load needed:
-require_once __DIR__ . '/../libraries/runPhantom.php';
+require_once __DIR__ . '/../libraries/RunPhantom.php';
 require_once __DIR__ . '/../helpers/Standards.php';
 
 // needed params

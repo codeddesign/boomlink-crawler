@@ -210,6 +210,10 @@ class Standards
             'no-follow',
         );
 
+        if(is_array($value)) {
+            $value = implode(', ', $value);
+        }
+
         foreach ($doNotTrack as $d_no => $p) {
             if (stripos($value, $p) !== false) {
                 return false;
