@@ -61,12 +61,13 @@ class CrawlProject extends Service implements ServiceInterface
         $headerS = $curl->getHeaderOnly();
 
         // holder:
-        $saveBodyText = $notCrawlableIds = $redirects = $nextLinks = $save = array();
+        $saveHeadingsText = $saveBodyText = $notCrawlableIds = $redirects = $nextLinks = $save = array();
         foreach ($links as $l_no => $link) {
             $bp = new BodyParse($link, $bodyS[$l_no], $headerS[$l_no], $curlInfoS[$l_no]);
             if ($bp->isCrawlAllowed()) {
                 # body text only:
                 $saveBodyText[$not_parsed[$l_no]['id']] = $bp->getBodyText();
+                $saveHeadingsText[$not_parsed[$l_no]['id']] = $bp->getHeadingsText();
 
                 # collected data:
                 $save[$l_no] = $bp->getLinkInfo();
@@ -131,6 +132,7 @@ class CrawlProject extends Service implements ServiceInterface
         if (count($save) > 0) {
             $this->saveLinkInfo($save, $not_parsed);
             $this->saveBodyText($saveBodyText);
+            $this->saveHeadingsText($saveHeadingsText);
 
             # determine if there are any already parsed:
             $nextLinks = $this->filterNotYetParsed($nextLinks);
@@ -391,6 +393,28 @@ class CrawlProject extends Service implements ServiceInterface
 
         $q = 'INSERT INTO page_main_info_body (page_id, body) VALUES ' . implode(',', $values);
 
+        return $this->dbo->runQuery($q);
+    }
+
+    /**
+     * @param $saveHeadingsText
+     * @return bool
+     */
+    private function saveHeadingsText($saveHeadingsText)
+    {
+        if (!is_array($saveHeadingsText) OR count($saveHeadingsText) == 0) {
+            return false;
+        }
+
+        $values = array();
+        $value_pattern = '(%d, \'%s\', \'%s\')';
+        foreach($saveHeadingsText as $link_id => $headings) {
+            foreach($headings as $h_type => $h_text) {
+                $values[] = sprintf($value_pattern, $link_id, $h_type, addslashes($h_text));
+            }
+        }
+
+        $q = 'INSERT INTO page_main_info_headings (page_id, heading_type, heading_text) VALUES '.implode(', ', $values);
         return $this->dbo->runQuery($q);
     }
 }

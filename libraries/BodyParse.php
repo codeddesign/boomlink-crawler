@@ -10,6 +10,7 @@ class BodyParse
      * @param $parsedUrl ( !Requires scheme -> http:// | https://]
      * @param $body
      * @param $header
+     * @param $curlInfo
      */
     function __construct($parsedUrl, $body, $header, $curlInfo)
     {
@@ -205,15 +206,39 @@ class BodyParse
         for ($i = 1; $i <= 6; $i++) {
             $tempTagName = 'H' . $i;
 
-            if (!isset($save[$tempTagName])) {
-                $save[strtolower($tempTagName)] = 0;
-            }
-
             $elements = $this->getElementsByTagName($tempTagName);
-            $save[strtolower($tempTagName)] += $elements->length;
+            $save[strtolower($tempTagName)] = $elements->length;
         }
 
         $this->collected['headingsCount'] = $save;
+
+        return $save;
+    }
+
+    public function getHeadingsText()
+    {
+        if (isset($this->collected['headingsText'])) {
+            return $this->collected['headingsText'];
+        }
+
+        // ..
+        $save = array();
+        for ($i = 1; $i <= 6; $i++) {
+            $tempTagName = 'H' . $i;
+
+            $elements = $this->getElementsByTagName($tempTagName);
+            if ($elements->length > 0) {
+                foreach ($elements as $element) {
+                    $tempContent = $element->textContent;
+                    $tempContent = trim(str_ireplace(array("\r\n", "\n", "\t"), " ", $tempContent));
+                    if (strlen($tempContent) > 0) {
+                        $save[$tempTagName][] = $tempContent;
+                    }
+                }
+            }
+        }
+
+        $this->collected['headingsText'] = $save;
 
         return $save;
     }

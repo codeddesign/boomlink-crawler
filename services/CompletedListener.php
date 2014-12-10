@@ -143,7 +143,6 @@ class CompletedListener extends Service implements ServiceInterface
             }
         }
 
-
         return array(
             'page_id' => $cl['id'],
             'algo_id' => $algorithm['id'],
