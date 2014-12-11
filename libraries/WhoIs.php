@@ -175,7 +175,7 @@ class WhoIs
         $query = $this->domain;
 
         // handle special queries:
-        if (array_key_exists($this->whois_server, $this->special_whois)) {
+        if (isset($this->special_whois[$this->whois_server])) {
             $query = sprintf($this->special_whois[$this->whois_server], $this->domain);
         }
 
@@ -255,7 +255,7 @@ class WhoIs
                     $value = trim($matched[2][$key_no]);
 
                     //avoid rewriting key values with the same name; important or not let's do it:
-                    if (array_key_exists($name, $parsed)) {
+                    if (isset($parsed[$name])) {
                         $name = $name . "_" . $key_no;
                     }
 

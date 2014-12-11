@@ -66,7 +66,7 @@ class Curl
 
         // add options values if available for change:
         foreach ($this->curl_sets as $s_key => $value) {
-            if (array_key_exists($s_key, $options_assoc)) {
+            if (isset($options_assoc[$s_key])) {
                 $this->curl_config[constant($options_assoc[$s_key])] = $this->curl_sets[$s_key];
             }
         }
@@ -206,7 +206,7 @@ class Curl
         if (isset($this->link_info) AND is_array($this->link_info)) {
             foreach ($this->link_info as $key => $arr) {
                 foreach ($arr as $temp_key => $temp_value) {
-                    if (array_key_exists($temp_key, $needed)) {
+                    if (isset($needed[$temp_key])) {
                         $info[$key][$temp_key] = $temp_value;
                     }
                 }

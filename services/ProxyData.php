@@ -157,7 +157,7 @@ class ProxyData extends Service implements ServiceInterface
                     $result = 0;
                     $content = json_decode($content, true);
                     if (is_array($content)) {
-                        if (array_key_exists('count', $content)) {
+                        if (isset($content['count'])) {
                             $result = $content['count'];
                         }
                     }

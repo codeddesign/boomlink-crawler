@@ -549,7 +549,7 @@ class BodyParse
         if(!is_array($linkData) or !count($linkData)) {
             return array();
         }
-        
+
         foreach ($linkData as $l_no => $data) {
             // remove attributes:
             unset($linkData[$l_no]['attributes']);
@@ -675,7 +675,7 @@ class BodyParse
         }
 
         foreach ($links as $link => $null) {
-            if (array_key_exists($link, $this->collected['canonicalLinks'])) {
+            if (isset($this->collected['canonicalLinks'][$link])) {
                 unset($links[$link]);
             }
         }
