@@ -50,7 +50,7 @@ class CompletedListener extends Service implements ServiceInterface
     private function getCompletedLinks($algorithm_id)
     {
         $q_p['select'] = 'SELECT * FROM page_main_info';
-        $q_p['conditions'] = 'WHERE parsed_status=%d AND api_data_status=%d AND proxy_data_status=%d AND phantom_data_status=%d AND sentimental_positive IS NOT NULL AND completed_algos NOT LIKE \'%%"%d"%%\'';
+        $q_p['conditions'] = 'WHERE parsed_status=%d AND api_data_status=%d AND proxy_data_status=%d AND sentimental_positive IS NOT NULL AND completed_algos NOT LIKE \'%%"%d"%%\'';
         $q_p['extra'] = 'LIMIT %d';
 
         $q = sprintf(implode(' ', $q_p), Config::NEW_STATUS, Config::NEW_STATUS, Config::NEW_STATUS, Config::NEW_STATUS, $algorithm_id, Config::getQueryLimit('completed_listener'));

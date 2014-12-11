@@ -437,13 +437,13 @@ class BodyParse
     }
 
     /**
-     * @param array $linkData
+     * @param $linkData
      * @return array
      */
-    private function makeLinkDataUnique(array $linkData)
+    private function makeLinkDataUnique($linkData)
     {
-        if (count($linkData) == 0) {
-            return $linkData;
+        if (!is_array($linkData) or !count($linkData)) {
+            return array();
         }
 
         // Get them uniquely in a separate array:
@@ -477,7 +477,7 @@ class BodyParse
         $ignoredLinksData = array();
         foreach ($linksOnly as $link => $l_no) {
             $find = ($link[strlen($link) - 1] == '/') ? substr($link, 0, strlen($link) - 1) : $link . '/';
-            if (array_key_exists($find, $linksOnly) AND !array_key_exists($link, $ignoredLinks)) {
+            if (isset($linksOnly[$find]) AND isset($linkData[$linksOnly[$find]]) AND !isset($ignoredLinks[$link])) {
                 $temp = $linkData[$linksOnly[$find]];
                 unset($temp['href']); // <- remove href before saving
 
@@ -491,18 +491,24 @@ class BodyParse
 
         // Merge ignoredLinksData saved in previous step:
         foreach ($ignoredLinksData as $l_no => $data) {
-            $linkData[$l_no] = array_merge($linkData[$l_no], $data);
+            if(is_array($data)) {
+                $linkData[$l_no] = array_merge($linkData[$l_no], $data);
+            }
         }
 
         return array_values($linkData);
     }
 
     /**
-     * @param array $linkData
+     * @param $linkData
      * @return array
      */
-    private function makeLinkDataCleaner(array $linkData)
+    private function makeLinkDataCleaner($linkData)
     {
+        if(!is_array($linkData) or !count($linkData)) {
+            return array();
+        }
+
         foreach ($linkData as $l_no => $data) {
             foreach ($data as $key => $temp) {
                 // make the array as a value
@@ -535,11 +541,15 @@ class BodyParse
 
     /**
      * Separates the links depending on: 'no-follow/no-index' / if 'external' / if 'internal'.
-     * @param array $linkData
+     * @param $linkData
      * @return array
      */
-    private function separateLinkData(array $linkData)
+    private function separateLinkData($linkData)
     {
+        if(!is_array($linkData) or !count($linkData)) {
+            return array();
+        }
+        
         foreach ($linkData as $l_no => $data) {
             // remove attributes:
             unset($linkData[$l_no]['attributes']);
@@ -620,12 +630,14 @@ class BodyParse
         $nodes = $this->regGetElementsByTagName('link');
 
         foreach ($nodes as $n_no => $node) {
-            $relValue = strtolower(trim($node->getAttribute('rel')));
+            if (is_object($node)) {
+                $relValue = strtolower(trim($node->getAttribute('rel')));
 
-            if (strtolower($relValue) == 'canonical') {
-                $href = strtolower(trim($node->getAttribute('href')));
-                if (strlen($href) > 0) {
-                    $canonicalLinks[$href] = '';
+                if (strtolower($relValue) == 'canonical') {
+                    $href = strtolower(trim($node->getAttribute('href')));
+                    if (strlen($href) > 0) {
+                        $canonicalLinks[$href] = '';
+                    }
                 }
             }
         }

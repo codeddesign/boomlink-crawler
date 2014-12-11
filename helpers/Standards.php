@@ -28,7 +28,7 @@ class Standards
         }
 
         $parts = parse_url($url);
-        if (array_key_exists("host", $parts)) {
+        if (isset($parts["host"])) {
             return str_ireplace("www.", "", $parts["host"]);
         }
 
@@ -210,7 +210,7 @@ class Standards
             'no-follow',
         );
 
-        if(is_array($value)) {
+        if (is_array($value)) {
             $value = implode(', ', $value);
         }
 

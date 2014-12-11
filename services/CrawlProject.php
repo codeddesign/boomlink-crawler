@@ -407,16 +407,19 @@ class CrawlProject extends Service implements ServiceInterface
         }
 
         $values = array();
-        $value_pattern = '(%d, \'%s\', \'%s\')';
+        $value_pattern = '(%d, \'%s\')';
         foreach ($saveHeadingsText as $link_id => $headings) {
             foreach ($headings as $h_type => $h_texts) {
+                $save = array();
                 foreach ($h_texts as $h_no => $h_text) {
-                    $values[] = sprintf($value_pattern, $link_id, $h_type, addslashes($h_text));
+                    $save[$h_type][] = $h_text;
                 }
+
+                $values[] = sprintf($value_pattern, $link_id, addslashes(Standards::json_encode_special($save)));
             }
         }
 
-        $q = 'INSERT INTO page_main_info_headings (page_id, heading_type, heading_text) VALUES ' . implode(', ', $values);
+        $q = 'INSERT INTO page_main_info_headings (page_id, heading_text) VALUES ' . implode(', ', $values);
         return $this->dbo->runQuery($q);
     }
 }

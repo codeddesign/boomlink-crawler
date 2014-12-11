@@ -25,7 +25,7 @@ class RunPhantom
             $response = $this->valuesAreOK($response);
 
             if (!$response) {
-                Standards::doDelay(null, rand(1, 3));
+                Standards::doDelay(null, 1);
                 $attempt++;
             }
         }
