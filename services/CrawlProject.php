@@ -406,8 +406,8 @@ class CrawlProject extends Service implements ServiceInterface
             return false;
         }
 
-        $values = array();
         $value_pattern = '(%d, \'%s\')';
+        $values = array();
         foreach ($saveHeadingsText as $link_id => $headings) {
             foreach ($headings as $h_type => $h_texts) {
                 $save = array();
@@ -419,7 +419,11 @@ class CrawlProject extends Service implements ServiceInterface
             }
         }
 
-        $q = 'INSERT INTO page_main_info_headings (page_id, heading_text) VALUES ' . implode(', ', $values);
-        return $this->dbo->runQuery($q);
+        if(count($values)) {
+            $q = 'INSERT INTO page_main_info_headings (page_id, heading_text) VALUES ' . implode(', ', $values);
+            $this->dbo->runQuery($q);
+        }
+
+        return false;
     }
 }
