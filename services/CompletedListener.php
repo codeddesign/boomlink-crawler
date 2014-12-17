@@ -17,7 +17,7 @@ class CompletedListener extends Service implements ServiceInterface
             $algorithms = $this->getAlgorithms();
             $this->domains = $this->getDomainsAge();
 
-            if(is_array($algorithms) AND count($algorithms) AND count($this->domains)) {
+            if (is_array($algorithms) AND count($algorithms) AND count($this->domains)) {
                 foreach ($algorithms as $a_no => $algorithm) {
                     $linksStats = array();
                     $completedLinks = $this->getCompletedLinks($algorithm['id']);
@@ -49,11 +49,7 @@ class CompletedListener extends Service implements ServiceInterface
      */
     private function getCompletedLinks($algorithm_id)
     {
-        $q_p['select'] = 'SELECT * FROM page_main_info';
-        $q_p['conditions'] = 'WHERE parsed_status=%d AND api_data_status=%d AND proxy_data_status=%d AND sentimental_positive IS NOT NULL AND completed_algos NOT LIKE \'%%"%d"%%\'';
-        $q_p['extra'] = 'LIMIT %d';
-
-        $q = sprintf(implode(' ', $q_p), Config::NEW_STATUS, Config::NEW_STATUS, Config::NEW_STATUS, Config::NEW_STATUS, $algorithm_id, Config::getQueryLimit('completed_listener'));
+        $q = 'SELECT * FROM page_main_info WHERE parsed_status=1 AND api_data_status=1 AND proxy_data_status=1 AND sentimental_positive IS NOT NULL AND completed_algos NOT LIKE "%\"' . $algorithm_id . '\"%" LIMIT ' . Config::getQueryLimit('completed_listener');
         return $this->dbo->getResults($q);
     }
 
@@ -95,7 +91,7 @@ class CompletedListener extends Service implements ServiceInterface
             switch ($type) {
                 case 'incoming':
                     $back_links = ($cl['total_back_links'] == '') ? 0 : ($cl['total_back_links']);
-                    if($back_links > 0) {
+                    if ($back_links > 0) {
                         $points += $p * $back_links;
                     }
                     break;
