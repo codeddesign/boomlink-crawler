@@ -29,8 +29,11 @@ class RobotsFile
         $curl->run();
 
         $curlInfo = $curl->getLinkCurlInfo();
+        $curlInfo = (is_array($curlInfo)) ? $curlInfo[key($curlInfo)] : $curlInfo;
+
         if (isset($curlInfo['http_code']) AND substr($curlInfo['http_code'], 0, 2) == '20') {
-            $this->data['robots_file'] = $curl->getBodyOnly();
+            $body = $curl->getBodyOnly();
+            $this->data['robots_file'] = is_array($body) ?  $body[key($body)] : $body;
         }
     }
 

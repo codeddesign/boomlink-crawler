@@ -31,7 +31,13 @@ class ProxyData extends Service implements ServiceInterface
     private function getProxies()
     {
         $q = 'SELECT * FROM proxies_list';
-        return $this->dbo->getResults($q);
+        $proxies = $this->dbo->getResults($q);
+
+        for ($i = 0; $i <= 5; $i++) {
+            shuffle($proxies);
+        }
+
+        return $proxies;
     }
 
     private function dataSave()
@@ -166,6 +172,7 @@ class ProxyData extends Service implements ServiceInterface
                     $this->dataCollected[$key] = $result;
                     break;
                 case 'facebook':
+                    libxml_use_internal_errors(true);
                     try {
                         $xml = simplexml_load_string($content);
                     } catch (Exception $e) {

@@ -865,6 +865,9 @@ class BodyParse
         return $save;
     }
 
+    private function isLinkToFile($link) {
+        return preg_match('#^.+.(jpg|jpeg|gif|png|ico|css|zip|tgz|gz|rar|bz2|doc|xls|exe|pdf|ppt|txt|tar|mid|midi|wav|bmp|rtf|js)$#i', $link, $matched);
+    }
 
     /**
      * @param int $depth
@@ -883,10 +886,12 @@ class BodyParse
 
         $c = $this->collected['crawlableLinks'];
         foreach ($c as $link => $href) {
-            $s[$link] = array(
-                'depth' => $depth,
-                'href' => $href,
-            );
+            if(!$this->isLinkToFile($href)) {
+                $s[$link] = array(
+                    'depth' => $depth,
+                    'href' => $href,
+                );
+            }
         }
 
         return $s;
