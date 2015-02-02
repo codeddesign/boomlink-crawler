@@ -117,7 +117,7 @@ class Curl
     /**
      * @param $url
      */
-    protected function runSingle($url)
+    public function runSingle($url)
     {
         // run:
         $con = $this->initSingleCurl($url);

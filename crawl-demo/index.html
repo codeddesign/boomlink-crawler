@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>crawl demo</title>
+    <script src="jquery-1.11.2.min.js"></script>
+    <script src="randomColor.js"></script>
+</head>
+<body>
+<style type="text/css">
+    #crawl-form {
+        width: 300px;
+        background-color: beige;
+    }
+
+    #crawl-form label {
+        float: left;
+    }
+
+    #crawl-form input {
+        float: right;
+    }
+</style>
+<form action="test.php" method="post" id="crawl-form">
+    <label for="link">Link</label>
+    <input type="url" name="link" id="link" placeholder="http://www.ran.de">
+
+    <div style="clear: both;"></div>
+    <input type="submit" value="Crawl">
+</form>
+<div style="clear: both;"></div>
+<div id="ajax-status"></div>
+<script>
+    function getRandomColor() {
+        return randomColor({luminosity: 'light', count: 1});
+    }
+
+    function getHtml(html, response, key) {
+        html += '<div style="background-color: ' + getRandomColor() + '"><pre>';
+        html += '<div style="font-weight: bold">' + key + '</div>';
+        html += JSON.stringify(response[key], null, 6);
+        html += '</pre></div>';
+
+        return html;
+    }
+    $('#crawl-form').on('submit', function (ev) {
+        ev.preventDefault();
+
+        var f = $(this), ajaxStatus = $('#ajax-status');
+        ajaxStatus.html('Loading ..');
+
+        $.ajax({
+            url: f.attr('action'),
+            method: f.attr('method'),
+            dataType: 'json',
+            data: f.serializeArray(),
+            success: function (response) {
+                var html = '';
+
+                for (var key in response) {
+                    if (key !== 'linkData') {
+                        html = getHtml(html, response, key);
+                    }
+                }
+
+                if (typeof response['linkData'] !== 'undefined') {
+                    for (var key in response['linkData']) {
+                        html = getHtml(html, response['linkData'], key);
+                    }
+                }
+
+                ajaxStatus.html(html);
+
+                console.log(response);
+            }
+        })
+    });
+</script>
+</body>
+</html>
