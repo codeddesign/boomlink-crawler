@@ -439,14 +439,7 @@ class CrawlProject extends Service implements ServiceInterface
         $value_pattern = '(%d, \'%s\')';
         $values = array();
         foreach ($saveHeadingsText as $link_id => $headings) {
-            foreach ($headings as $h_type => $h_texts) {
-                $save = array();
-                foreach ($h_texts as $h_no => $h_text) {
-                    $save[$h_type][] = $h_text;
-                }
-
-                $values[] = sprintf($value_pattern, $link_id, addslashes(Standards::json_encode_special($save)));
-            }
+            $values[] = sprintf($value_pattern, $link_id, addslashes(Standards::json_encode_special($headings)));
         }
 
         if(count($values)) {
