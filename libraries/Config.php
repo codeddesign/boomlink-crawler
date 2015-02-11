@@ -140,4 +140,12 @@ class Config
             array('class' => 'CompletedListener', 'wait' => false),
         );
     }
+
+    /**
+     * @return string
+     */
+    public static function getDefaultDomain()
+    {
+        return 'no-domain';
+    }
 } 

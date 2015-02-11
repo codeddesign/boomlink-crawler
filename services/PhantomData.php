@@ -14,6 +14,11 @@ class PhantomData extends Service implements ServiceInterface
 
     function doWork()
     {
+        /*# todo: remove [tests]
+        sleep(10);
+        echo 'phantom data - service now should exit!'."\n";
+        exit(9);*/
+
         $RUN = true;
         while ($RUN) {
             $this->urls = $this->getProjectLinks();

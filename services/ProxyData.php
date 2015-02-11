@@ -80,6 +80,11 @@ class ProxyData extends Service implements ServiceInterface
      */
     public function doWork()
     {
+        /*# todo: remove [tests]
+        sleep(10);
+        echo 'proxy data - service now should exit!'."\n";
+        exit(9);*/
+
         # get proxies
         $this->proxies = $this->getProxies();
         $useProxy = array();

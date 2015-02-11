@@ -24,7 +24,7 @@ class CrawlProject extends Service implements ServiceInterface
     {
         /*# todo: remove [tests]
         sleep(10);
-        echo 'crawl project now should exit!'."\n";
+        echo 'crawl project - service now should exit!'."\n";
         exit(9);*/
 
         $this->getProjectRules();

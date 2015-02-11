@@ -24,6 +24,11 @@ class ApiData extends Service implements ServiceInterface
      */
     public function doWork()
     {
+        /*# todo: remove [tests]
+        sleep(10);
+        echo 'api data - service now should exit!'."\n";
+        exit(9);*/
+
         $RUN = true;
         while ($RUN !== false) {
             $this->urls = $this->getProjectLinks();

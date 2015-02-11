@@ -96,7 +96,7 @@ class Service
     {
         if ($this->servicePID == $this->getPID()) {
             # few need pre-sets:
-            $temp_DomainName = (isset($callbackArgs['domain_name'])) ? $callbackArgs['domain_name'] : 'no-domain';
+            $temp_DomainName = (isset($callbackArgs['domain_name'])) ? $callbackArgs['domain_name'] : Config::getDefaultDomain();
             $temp_ServiceName = strtolower($callback);
 
             # ..

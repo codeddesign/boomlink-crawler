@@ -12,6 +12,11 @@ class CompletedListener extends Service implements ServiceInterface
 
     public function doWork()
     {
+        /*# todo: remove [tests]
+        sleep(10);
+        echo 'completed listener - service now should exit!'."\n";
+        exit(9);*/
+
         $run = true;
         while ($run) {
             $algorithms = $this->getAlgorithms();

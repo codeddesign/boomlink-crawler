@@ -122,6 +122,8 @@ class ProjectListener extends Service implements ServiceInterface
      */
     private function handleParallelServices()
     {
+        $defaultDomain = Config::getDefaultDomain();
+
         $parallelServices = array(
             'ProxyData',
             'PhantomData',
@@ -131,7 +133,7 @@ class ProjectListener extends Service implements ServiceInterface
         foreach ($parallelServices as $s_no => $service) {
             $lowerName = strtolower( $service );
 
-            if ( ! isset( $this->PIDs[$lowerName] )) {
+            if ( ! isset( $this->PIDs[$lowerName][$defaultDomain] )) {
                 $this->runService( $service, array() );
             }
         }
