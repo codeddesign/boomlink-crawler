@@ -12,15 +12,15 @@ if ( ! isset( $_POST['link'] ) OR ! strlen( trim( $_POST['link'] ) )) {
     json_exit( array( 'error' => 'no link set' ) );
 }
 
-$link = trim( $_POST['link'] );
-$curl = new Curl();
-$curl->runSingle( $link );
+$link = trim($_POST['link']);
 
-$bodies = $curl->getBodyOnly();
-$info   = $curl->getLinkCurlInfo();
-$heads  = $curl->getHeaderOnly();
+$single = new RequestSingle($link, 'boomlink/v3' );
+$single->send();
 
-$bp = new BodyParse( $link, $bodies[0], $heads[0], $info[0] );
+# get request's response:
+$response = $single->getResponse();
+
+$bp = new BodyParse( $link, $response->body, $response->header, $response->curlInfo );
 $bp->isCrawlAllowed();
 
 // ..

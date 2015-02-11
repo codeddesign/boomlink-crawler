@@ -356,10 +356,11 @@ class Standards
      * @param $msg
      * @param bool $exit
      * @param bool $toFile
+     * @param bool $debug
      */
-    public static function debug($msg, $exit = false, $toFile = false)
+    public static function debug($msg, $exit = false, $toFile = false, $debug = false)
     {
-        if (!self::DEBUG) {
+        if (!self::DEBUG OR $debug) {
             $toFile = false;
         }
 
@@ -367,7 +368,7 @@ class Standards
             ob_start();
         }
 
-        if (self::DEBUG) {
+        if (self::DEBUG OR $debug) {
             if (is_array($msg)) {
                 print_r($msg);
             } else {
@@ -521,5 +522,28 @@ class Standards
         $date = new DateTime($reg_date);
         $now = new DateTime();
         return $now->diff($date)->y;
+    }
+
+    /**
+     * @param $body
+     *
+     * @return string
+     */
+    public static function getCleanerContent( $body )
+    {
+        # filter by line (if we got multiple lines content):
+        if (stripos( $body, "\n" ) !== false) {
+            $lines = explode( "\n", $body );
+            $body  = '';
+            foreach ($lines as $l_num => $line) {
+                $line = trim( $line );
+                if (strlen( $line ) > 1) {
+                    $body .= trim( $line ) . " ";
+                }
+            }
+        }
+
+        # remove:
+        return trim( str_ireplace( array( "\r\n", "\t", "  " ), " ", $body ) );
     }
 }

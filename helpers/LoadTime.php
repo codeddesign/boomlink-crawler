@@ -7,9 +7,11 @@
 class LoadTime
 {
     protected $start;
+    protected $pid;
 
-    function __construct()
+    function __construct($pid)
     {
+        $this->pid = $pid;
         $this->start = $this->getTime();
     }
 
@@ -25,13 +27,13 @@ class LoadTime
     function __destruct()
     {
         $css = 'position:fixed; width: 100%%; bottom: 0;left: 0;text-align: center;background-color: black; color: yellow; font-family: Arial, cursive, sans-serif';
-        $pattern = '<div style=\'' . $css . '\'>Completed in: %s seconds.</div>';
+        $pattern = '<div style=\'' . $css . '\'>[%s] -> completed in: %s seconds.</div>';
 
-        $msg = sprintf($pattern, number_format($this->getTime() - $this->start, 6));
+        $msg = sprintf($pattern, $this->pid, number_format($this->getTime() - $this->start, 6));
         if (php_sapi_name() == 'cli') {
             echo "\n" . strip_tags($msg) . "\n";
         } else {
-            echo $msg;
+            echo $msg."\n";
         }
     }
 }

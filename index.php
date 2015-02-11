@@ -61,7 +61,7 @@ switch ($op) {
 
         $msg = 'already';
         if (count($pids)) {
-            shell_exec('kill -9 ' . implode(' ', $pids));
+            shell_exec('kill ' . implode(' ', $pids));
             $msg = 'killed';
         }
         break;

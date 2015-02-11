@@ -12,64 +12,49 @@
 
 class ProjectListener extends Service implements ServiceInterface
 {
-    private $dbo, $allProjects;
+    private $dbo;
+    private $projects = array();
 
     /**
      * @param array $arguments
      */
-    public function doSets(array $arguments = array())
+    public function doSets( array $arguments = array() )
     {
         // init db:
         $this->dbo = new MySQL();
 
-        Standards::debug(__CLASS__ . ' (parent thread) is: ' . $this->getPID());
+        Standards::debug( __CLASS__ . ' (parent thread) is: ' . $this->getPID() );
     }
 
     public function doWork()
     {
-        # RUN: parallel sub-service ProxyData:
-        $this->runService('ProxyData', array());
-        $this->runService('PhantomData', array());
-        $this->runService('CompletedListener', array());
-
-        // rest of logic:
-        $RUN = TRUE;
-        while ($RUN == TRUE) {
-            /* if there are new projects: */
+        $RUN = true;
+        while ($RUN == true) {
+            # get projects:
             $this->getAllProjects();
-            $toCrawl = $this->areNewProjects();
 
-            if ($toCrawl !== FALSE) {
-                foreach ($toCrawl as $d_id => $info) {
+            if (is_array($this->projects)) {
+                $this->handleParallelServices();
+
+                # determine what to run:
+                foreach ($this->projects as $p_no => $project) {
                     $params = array(
-                        'url' => $info['DomainURL'],
-                        'domain_id' => $info['DomainURLIDX'],
-                        'domain_name' => $info['domain_name'],
+                        'url'         => $project['DomainURL'],
+                        'domain_id'   => $project['DomainURLIDX'],
+                        'domain_name' => $project['domain_name'],
                     );
 
-                    /* run sub-services */
-                    if ($info['server_ip'] == '') {
-                        $this->runService('DomainData', $params);
-                    }
-
-                    # .. :
-                    $this->runService('CrawlProject', $params);
-
-                    # keep track of the 'crawled' domain:
-                    $this->crawlingDomains[$info['domain_name']] = '';
-
-                    # run api data:
-                    $this->runService('ApiData', $params);
+                    $this->handleProjectServices( $project, $params );
                 }
-
-                # wait for 'waitable' services:
-                $this->waitForFinish();
             }
 
-            // pause:
-            Standards::doDelay($this->serviceName . '[pid-parent: ' . $this->getPID() . ']', Config::getDelay('project_listener_pause'));
+            # check for closed project (to avoid defunct processes) & handle data:
+            if (count( $this->PIDs )) {
+                $this->checkForClosed();
+            }
 
-            # $RUN = false;
+            # pause:
+            $this->listenerPause();
         }
     }
 
@@ -78,27 +63,77 @@ class ProjectListener extends Service implements ServiceInterface
      */
     private function getAllProjects()
     {
-        $q = 'SELECT * FROM status_domain';
-        $this->allProjects = $this->dbo->getResults($q);
+        $this->projects = $this->dbo->getResults( 'SELECT * FROM status_domain' );
+    }
+
+    private function listenerPause()
+    {
+        Standards::doDelay( $this->serviceName . '[pid-parent: ' . $this->getPID() . ']', 3 /*Config::getDelay('project_listener_pause')*/ );
     }
 
     /**
-     * @return array|bool
+     * Take care of running the services that a project needs to run.
+     * Info and logic:
+     * - if the 'server_ip' is empty means that we need to run first the DomainData service.
+     *   It's purpose is to act like a checkpoint, because that service also gets the robots.txt so this means
+     *   that it ran and the rest of the services can be created.
+     * - It will ran 2 services for each project that is created (CrawlProject and ApiData)
+     *
+     * @param $project
+     * @param $params
+     *
+     * @return bool
      */
-    private function areNewProjects()
+    private function handleProjectServices( $project, $params )
     {
-        $newOnes = false;
+        $domainName = strtolower( $params['domain_name'] );
+        $domainData = trim( $project['server_ip'] );
 
-        if (!is_array($this->allProjects)) {
-            return $newOnes;
+        # check if domain's data is ready:
+        if ( ! $domainData) {
+            $this->runService( 'DomainData', $params );
+            return '';
         }
 
-        foreach ($this->allProjects as $c_no => $info) {
-            if (!isset($this->crawlingDomains[$info['domain_name']])) {
-                $newOnes[] = $info;
+        # loop through services and check if they are running yet:
+        $projectServices = array(
+            'CrawlProject',
+            'ApiData',
+        );
+
+        foreach ($projectServices as $s_no => $service) {
+            $lowerName = strtolower( $service );
+
+            if ( ! isset( $this->PIDs[$lowerName][$domainName] )) {
+                $this->runService( $service, $params );
             }
         }
 
-        return $newOnes;
+        return '';
+    }
+
+
+    /**
+     * Takes care of the parallel running services.
+     * Info:
+     * - It will ran only ONE instance for each service listed in $parallelService
+     * - if you want to disable one while doing tests, you can just comment the line
+     *
+     */
+    private function handleParallelServices()
+    {
+        $parallelServices = array(
+            'ProxyData',
+            'PhantomData',
+            'CompletedListener'
+        );
+
+        foreach ($parallelServices as $s_no => $service) {
+            $lowerName = strtolower( $service );
+
+            if ( ! isset( $this->PIDs[$lowerName] )) {
+                $this->runService( $service, array() );
+            }
+        }
     }
 }

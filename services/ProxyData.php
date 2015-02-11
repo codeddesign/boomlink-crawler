@@ -8,10 +8,14 @@
 
 class ProxyData extends Service implements ServiceInterface
 {
-    private $dbo, $curl, $external_links, $proxies, $link_id;
+    private $dbo, $external_links, $proxies, $link_id;
+    private $userAgentName;
+    private $responses;
 
     public function doSets(array $arguments = array())
     {
+        $this->userAgentName = '';
+
         $this->dbo = new MySQL();
     }
 
@@ -122,9 +126,10 @@ class ProxyData extends Service implements ServiceInterface
                     );
 
 
-                    $this->curl = new Curl(true, array('proxy' => $useProxy));
-                    $this->curl->addLinks($this->external_links);
-                    $this->curl->run();
+                    $multi = new RequestMulti( $this->userAgentName );
+                    $multi->addLinks( $this->external_links, $useProxy);
+                    $multi->send();
+                    $this->responses = $multi->getResponse();
 
                     // parse body's for needed data:
                     $this->parseProxyData();
@@ -139,6 +144,8 @@ class ProxyData extends Service implements ServiceInterface
                     Standards::doDelay($this->serviceName. '[pid: ' . $this->getPID() . ']', Config::getDelay('proxy_data_wait'));
                 }
             }
+
+            # $RUN = false;
         }
     }
 
@@ -147,12 +154,13 @@ class ProxyData extends Service implements ServiceInterface
      */
     private function parseProxyData()
     {
-        $bodies = $this->curl->getBodyOnly();
-        foreach ($bodies as $key => $content) {
+        foreach ($this->responses as $r_no => $response) {
+            $key = $response->linkId;
+
             switch ($key) {
                 case 'google_plus':
                     $result = 0;
-                    if (preg_match("/= \{c:(.*?),/", $content, $matched)) {
+                    if (preg_match("/= \{c:(.*?),/", $response->body, $matched)) {
                         $result = (int)$matched[1];
                     }
 
@@ -161,7 +169,7 @@ class ProxyData extends Service implements ServiceInterface
                     break;
                 case 'tweeter':
                     $result = 0;
-                    $content = json_decode($content, true);
+                    $content = json_decode($response->body, true);
                     if (is_array($content)) {
                         if (isset($content['count'])) {
                             $result = $content['count'];
@@ -174,7 +182,7 @@ class ProxyData extends Service implements ServiceInterface
                 case 'facebook':
                     libxml_use_internal_errors(true);
                     try {
-                        $xml = simplexml_load_string($content);
+                        $xml = simplexml_load_string($response->body);
                     } catch (Exception $e) {
                         // ..
                         $xml = array();
@@ -199,19 +207,19 @@ class ProxyData extends Service implements ServiceInterface
                     break;
                 case 'google_rank':
                     $pageRank = '0';
-                    if (($pos = strpos($content, 'Rank_')) !== false) {
-                        $pageRank = substr($content, $pos + 9);
+                    if (($pos = strpos($response->body, 'Rank_')) !== false) {
+                        $pageRank = substr($response->body, $pos + 9);
                     }
 
                     $this->dataCollected[$key] = $pageRank;
                     break;
                 case 'indexed_google':
                     $res = 'unknown';
-                    if (strlen($content) == 0) {
+                    if (strlen($response->body) == 0) {
                         $res = "proxy-error";
-                    } elseif (stripos($content, 'id="resultStats"') !== false) {
+                    } elseif (stripos($response->body, 'id="resultStats"') !== false) {
                         $res = "found";
-                    } elseif (stripos($content, "did not match") !== false OR stripos($content, 'gefunden.') !== false) {
+                    } elseif (stripos($response->body, "did not match") !== false OR stripos($response->body, 'gefunden.') !== false) {
                         $res = "not-found";
                     }
 
@@ -219,13 +227,13 @@ class ProxyData extends Service implements ServiceInterface
                     break;
                 case 'indexed_bing':
                     $res = 'unknown';
-                    if (strlen($content) == 0) {
+                    if (strlen($response->body) == 0) {
                         $res = "proxy-error";
-                    } elseif (stripos($content, "keine") !== false and stripos($content, "gefunden.") !== false) {
+                    } elseif (stripos($response->body, "keine") !== false and stripos($response->body, "gefunden.") !== false) {
                         $res = "not-found";
-                    } elseif (stripos($content, 'class="sb_count"') !== false) {
+                    } elseif (stripos($response->body, 'class="sb_count"') !== false) {
                         $res = "found";
-                        if (preg_match('#<span(.*?)class="sb_count"(.*?)>[\d]+</span>#', $content, $matched)) {
+                        if (preg_match('#<span(.*?)class="sb_count"(.*?)>[\d]+</span>#', $response->body, $matched)) {
                             $count = trim($matched[3]);
                             if ($count < 1) {
                                 $res = "not-found";

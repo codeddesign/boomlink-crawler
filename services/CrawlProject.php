@@ -7,6 +7,7 @@
 class CrawlProject extends Service implements ServiceInterface
 {
     private $domain_id, $dbo, $project_config, $robots_file, $robots_rules;
+    private $userAgentName;
 
     public function doSets(array $arguments = array('domain_id' => '', 'domain_name' => ''))
     {
@@ -21,12 +22,16 @@ class CrawlProject extends Service implements ServiceInterface
 
     public function doWork()
     {
-        if (!$this->getProjectRules()) {
-            Standards::debug('Project with id ' . $this->domain_id . ' does not exist', Standards::DO_EXIT);
-        }
+        /*# todo: remove [tests]
+        sleep(10);
+        echo 'crawl project now should exit!'."\n";
+        exit(9);*/
+
+        $this->getProjectRules();
 
         $not_parsed = $this->getNonParsedLinks();
-        while ($not_parsed !== false AND count($not_parsed) > 0) {
+        $run = true;
+        while ($run AND $not_parsed !== false AND count($not_parsed) > 0) {
             $this->workLogic($not_parsed);
 
             # small pause:
@@ -34,6 +39,9 @@ class CrawlProject extends Service implements ServiceInterface
 
             # get more links:
             $not_parsed = $this->getNonParsedLinks();
+
+            /*# todo: remove [tests]
+            $run = false;*/
         }
 
     }
@@ -52,18 +60,15 @@ class CrawlProject extends Service implements ServiceInterface
         }
 
         /* curl: */
-        $curl = new Curl();
-        $curl->addLinks($links);
-        $curl->run();
-
-        $curlInfoS = $curl->getLinkCurlInfo();
-        $bodyS = $curl->getBodyOnly();
-        $headerS = $curl->getHeaderOnly();
+        $multi = new RequestMulti( $this->userAgentName );
+        $multi->addLinks( $not_parsed );
+        $multi->send();
+        $responses = $multi->getResponse();
 
         // holder:
         $saveHeadingsText = $saveBodyText = $notCrawlableIds = $redirects = $nextLinks = $save = array();
         foreach ($links as $l_no => $link) {
-            $bp = new BodyParse($link, $bodyS[$l_no], $headerS[$l_no], $curlInfoS[$l_no]);
+            $bp = new BodyParse($link, $responses[$l_no]->body, $responses[$l_no]->header, $responses[$l_no]->curlInfo);
             if ($bp->isCrawlAllowed()) {
                 # body text only:
                 $saveBodyText[$not_parsed[$l_no]['id']] = $bp->getBodyText();
@@ -71,10 +76,15 @@ class CrawlProject extends Service implements ServiceInterface
 
                 # collected data:
                 $save[$l_no] = $bp->getLinkInfo();
+                
                 # avoid getting lists over the maxDepth;
                 $depth = ($not_parsed[$l_no]['depth'] + 1);
                 if ($depth <= $this->project_config['maxDepth']) {
-                    $nextLinks = $bp->getCrawlableOnes($depth);
+                    $temp = $bp->getCrawlableOnes($depth);
+                    $nextLinks = array_merge($nextLinks, $temp);
+
+                    /*# todo: remove [tests]
+                    echo $link." has ".count($temp)."\n";*/
                 }
             } else {
                 # save the one which might not allow indexing so it could be removed
@@ -93,6 +103,9 @@ class CrawlProject extends Service implements ServiceInterface
             }
         }
 
+        /*# todo: remove [tests]
+        echo "next links after merge: ".count($nextLinks)."\n";*/
+
         // remove from nextLinks the ones that don't abide robots.txt:
         foreach ($nextLinks as $link => $null) {
             $respects = Standards::respectsRobotsRules($this->robots_rules, $this->project_config['botName'], $link);
@@ -100,6 +113,9 @@ class CrawlProject extends Service implements ServiceInterface
                 unset($nextLinks[$link]);
             }
         }
+
+        /*# todo: remove [tests]
+        echo "next links after filtering 'robots': ".count($nextLinks)."\n";*/
 
         /* extra filtering before database interaction: */
         # checkout for duplicates:
@@ -122,11 +138,18 @@ class CrawlProject extends Service implements ServiceInterface
         $nextLinks = array_diff_key($nextLinks, $redirects);
         $nextLinks = array_diff_key($nextLinks, $save_links);
 
+        /*# todo: remove [tests]
+        echo "next links after 'array_diff': ".count($nextLinks)."\n";*/
+
         $redirects = array_diff_key($redirects, $nextLinks);
         $redirects = array_diff_key($redirects, $save_links);
 
         # 2. remove possible duplicates:
         $nextLinks = Standards::removePossibleDuplicates($nextLinks);
+
+        /*# todo: remove [tests]
+        echo "next links after 'remove possible duplicates': ".count($nextLinks)."\n";*/
+
         $redirects = Standards::removePossibleDuplicates($redirects);
 
         if (count($save) > 0) {
@@ -136,6 +159,12 @@ class CrawlProject extends Service implements ServiceInterface
 
             # determine if there are any already parsed:
             $nextLinks = $this->filterNotYetParsed($nextLinks);
+
+            /*# todo: remove [tests]
+            echo "next links after 'removing the ones from db': ".count($nextLinks)."\n";
+            print_r($nextLinks);
+            die;*/
+
             if (count($nextLinks) > 0) {
                 $this->saveNextLinks($nextLinks);
             }
@@ -198,26 +227,27 @@ class CrawlProject extends Service implements ServiceInterface
      */
     private function getProjectRules()
     {
-        $step = 0;
+        $exit = Standards::DO_EXIT;
 
         // robots file:
         $r = $this->dbo->getResults('SELECT * FROM status_domain WHERE DomainURLIDX=' . $this->domain_id);
-        if (count($r) > 0) {
-            $this->robots_file = $r[0]['robots_file'];
-            $this->robots_rules = Standards::getRobotsRules($this->robots_file);
-            $step++;
+        if(!count($r) or !is_array($r)) {
+            Standards::debug('Project with id ' . $this->domain_id . ' does not exist', $exit);
+            return false;
         }
+
+        $this->robots_file = $r[0]['robots_file'];
+        $this->robots_rules = Standards::getRobotsRules($this->robots_file);
 
         // crawler global config:
         $r = $this->dbo->getResults('SELECT * FROM crawler_config');
-        if (count($r) > 0) {
-            $this->project_config = json_decode($r[0]['config'], true);
-            $step++;
-        }
-
-        if ($step !== 2) {
+        if (!count($r) or !is_array($r)) {
+            Standards::debug('Crawler config is missing', $exit);
             return false;
         }
+
+        $this->project_config = json_decode($r[0]['config'], true);
+        $this->userAgentName = $this->project_config['botName'];
 
         return true;
     }

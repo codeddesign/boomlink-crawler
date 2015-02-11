@@ -974,21 +974,6 @@ class BodyParse
             $body = strip_tags($matched[2]);
         }
 
-        # filter by line (if we got multiple lines content):
-        if (stripos($body, "\n") !== false) {
-            $lines = explode("\n", $body);
-            $body = '';
-            foreach ($lines as $l_num => $line) {
-                $line = trim($line);
-                if (strlen($line) > 1) {
-                    $body .= trim($line) . "\n";
-                }
-            }
-        }
-
-        # remove '\r' (just in case):
-        $body = str_ireplace("\r", "", $body);
-
-        return $body;
+        return Standards::getCleanerContent( $body );
     }
 }

@@ -120,10 +120,24 @@ class Config
     public static function getDBConfig()
     {
         return array(
-            'host' => '104.131.95.165',
+            'host' => 'localhost', //'104.131.95.165',
             'db_name' => 'site_analysis',
             'username' => 'root',
-            'password' => 'My6Celeb',
+            'password' => 'ad3l1n',//'My6Celeb',
+        );
+    }
+
+    /**
+     * @return array
+     */
+    public static function getAvailableServices( ){
+        return array(
+            array('class' => 'DomainData', 'wait' => false),
+            array('class' => 'CrawlProject', 'wait' => false),
+            array('class' => 'ApiData', 'wait' => false),
+            array('class' => 'ProxyData', 'wait' => false),
+            array('class' => 'PhantomData', 'wait' => false),
+            array('class' => 'CompletedListener', 'wait' => false),
         );
     }
 } 

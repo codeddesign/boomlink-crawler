@@ -2,7 +2,9 @@
 
 class ApiData extends Service implements ServiceInterface
 {
-    private $arguments, $dbo, $external_links, $urls, $link_ids, $curl;
+    private $arguments, $dbo, $external_links, $urls, $link_ids;
+    private $responses;
+    private $userAgentName;
 
     /**
      * [!IMPORTANT] $arguments is an array of arrays holding links to be parsed and another needed information
@@ -10,7 +12,10 @@ class ApiData extends Service implements ServiceInterface
      */
     public function doSets(array $arguments = array('domain_id' => '', 'domain_name' => ''))
     {
+        $this->userAgentName = 'boomlink';
+
         $this->arguments = $arguments;
+
         $this->dbo = new MySQL();
     }
 
@@ -41,9 +46,10 @@ class ApiData extends Service implements ServiceInterface
                 }
 
                 // do the actual curl:
-                $this->curl = new Curl();
-                $this->curl->addLinks($this->external_links);
-                $this->curl->run();
+                $multi = new RequestMulti( $this->userAgentName );
+                $multi->addLinks( $this->external_links );
+                $multi->send();
+                $this->responses = $multi->getResponse();
 
                 // parse body's for needed data:
                 $this->parseApiData();
@@ -55,6 +61,8 @@ class ApiData extends Service implements ServiceInterface
                 # pause:
                 Standards::doDelay($this->serviceName . '[pid: ' . $this->getPID() . ' | domain_id: ' . $this->arguments['domain_name'] . ']', Config::getDelay('api_data_pause'));
             }
+
+            # $RUN = false;
         }
     }
 
@@ -115,15 +123,14 @@ class ApiData extends Service implements ServiceInterface
 
     private function parseApiData()
     {
-        $bodies = $this->curl->getBodyOnly();
-        foreach ($bodies as $key => $content) {
-            $parts = explode('_', $key);
+        foreach ($this->responses as $r_no => $response) {
+            $parts = explode('_', $response->linkId);
             $match = $parts[0];
             $link_id = $parts[count($parts) - 1];
 
             switch ($match) {
                 case 'majestic':
-                    $arr = json_decode($content, TRUE);
+                    $arr = json_decode($response->body, TRUE);
                     $total = 0;
 
                     if (isset($arr['DataTables']['BackLinks']['Headers']['TotalBackLinks'])) {
@@ -133,7 +140,7 @@ class ApiData extends Service implements ServiceInterface
                     $this->dataCollected[$link_id]['total_back_links'] = $total;
                     break;
                 case 'uclassify':
-                    $xml = simplexml_load_string($content);
+                    $xml = simplexml_load_string($response->body);
                     $arr = json_decode(json_encode($xml), TRUE);
 
                     // default:

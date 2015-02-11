@@ -2,12 +2,17 @@
 
 class Service
 {
-    protected $serviceName, $servicePID, $PIDs, $servicesAvailable, $servicesWaitable, $dataCollected, $crawlers, $startTime, $crawlingDomains;
+    protected $serviceName, $servicePID, $servicesAvailable, $servicesWaitable, $crawlingDomains;
+    protected $dataCollected = array();
+
+    /*
+     * holds the current running 'sub-services'
+     * Info: check saveToRunning() for format
+     * */
+    protected $PIDs = array();
 
     function __construct(array $servicesAvailable = array())
     {
-        $this->startTime = time();
-
         // keeps available services:
         $this->servicesAvailable = $servicesAvailable;
         $this->servicesWaitable = $this->getServicesWaitable($servicesAvailable);
@@ -15,9 +20,6 @@ class Service
         // service sets:
         $this->servicePID = $this->getPID();
         $this->serviceName = strtolower(get_class($this));
-
-        // default sets:
-        $this->dataCollected = $this->PIDs = array();
     }
 
     /**
@@ -94,15 +96,12 @@ class Service
     {
         if ($this->servicePID == $this->getPID()) {
             # few need pre-sets:
-            $temp_DomainName = (isset($callbackArgs['domain_name'])) ? $callbackArgs['domain_name'] : '';
+            $temp_DomainName = (isset($callbackArgs['domain_name'])) ? $callbackArgs['domain_name'] : 'no-domain';
             $temp_ServiceName = strtolower($callback);
 
             # ..
             $childPid = $this->threadFork();
-            $this->PIDs[$childPid] = array(
-                'service' => $temp_ServiceName,
-                'domain_name' => $temp_DomainName,
-            );
+            $this->saveToRunning( $childPid, $temp_ServiceName, $temp_DomainName);
 
             if (!$childPid) {
                 Standards::debug('created thread with pid:' . $this->getPID() . ' [' . $temp_DomainName . ' > ' . $temp_ServiceName . ']');
@@ -185,11 +184,110 @@ class Service
     }
 
     /**
+     * @param $pid
+     * @return bool|mixed
+     */
+    private function memoryRead($pid)
+    {
+        $shm_data = false;
+        $shm_id = @shmop_open($pid, 'a', 0, 0);
+        if ($shm_id) {
+            $shm_data = shmop_read($shm_id, 0, shmop_size($shm_id));
+            shmop_delete($shm_id);
+            shmop_close($shm_id);
+        }
+
+        if ($shm_data == false) {
+            return false;
+        }
+
+        return json_decode($shm_data, true);
+    }
+
+    /**
+     * @param $pid
+     * @param array $data_arr
+     */
+    private function memoryWrite($pid, array $data_arr)
+    {
+        $data_str = Standards::json_encode_special($data_arr);
+
+        $shm_id = shmop_open($pid, "c", 0777, strlen($data_str));
+        if (!$shm_id) {
+            Standards::debug("Couldn't create shared memory segment");
+        } else {
+            if (shmop_write($shm_id, $data_str, 0) != strlen($data_str)) {
+                Standards::debug("Couldn't write shared memory data");
+            }
+        }
+    }
+
+    /**
+     * @return array
+     */
+    public function getDataCollected()
+    {
+        return $this->dataCollected;
+    }
+
+    /**
+     * @param $threadPid
+     * @param $serviceName
+     * @param $domainName
+     */
+    protected function saveToRunning( $threadPid, $serviceName, $domainName )
+    {
+
+        if ( ! isset( $this->PIDs[$serviceName] )) {
+            $this->PIDs[$serviceName] = array();
+        }
+
+        $this->PIDs[$serviceName][$domainName] = $threadPid;
+    }
+
+    /**
+     * Purpose:
+     * - Check's to see if we got any children closed
+     * - It's being used in the service runner (like ProjectListener)
+     * - removes associate data
+     */
+    protected function checkForClosed()
+    {
+        $childPid = pcntl_waitpid( - 1, $status, WNOHANG );
+        if ($childPid > 1) {
+            /*echo $childPid.' exited with status = '.$status."\n";*/
+
+            foreach ($this->PIDs as $serviceName => $running) {
+                foreach ($running as $domain => $r_pid) {
+                    if ($r_pid == $childPid) {
+                        unset( $this->PIDs[$serviceName][$domain] );
+
+                        /*echo "removed: ".$r_pid."\n";
+                        print_r($this->PIDs);
+                        echo "\n";*/
+                    }
+                }
+            }
+        }
+    }
+
+    /*
+     * - DEPRECATE METHODS ZONE -
+     *
+     * Note:
+     * - in case this methods will be needed the code needs to be reviewed and adapted
+     * to current changes, because some attributes might not be available anymore or
+     * have a different structure (e.g.: some arrays)
+    */
+
+
+    /**
      * Waits for threads to exit after work ('waitable' ones)
+     *
      * @param bool $disabled
      * @return bool
      */
-    protected function waitForFinish($disabled = true)
+    private function _deprecated_waitForFinish($disabled = true)
     {
         if ($disabled) {
             return false;
@@ -243,71 +341,10 @@ class Service
     }
 
     /**
-     * @param $pid
-     * @return bool|mixed
+     * Add's signal handler to running pid's
+     *
      */
-    private function memoryRead($pid)
-    {
-        $shm_data = false;
-        $shm_id = @shmop_open($pid, 'a', 0, 0);
-        if ($shm_id) {
-            $shm_data = shmop_read($shm_id, 0, shmop_size($shm_id));
-            shmop_delete($shm_id);
-            shmop_close($shm_id);
-        }
-
-        if ($shm_data == false) {
-            return false;
-        }
-
-        return json_decode($shm_data, true);
-    }
-
-    /**
-     * @param $pid
-     * @param array $data_arr
-     */
-    private function memoryWrite($pid, array $data_arr)
-    {
-        $data_str = Standards::json_encode_special($data_arr);
-
-        $shm_id = shmop_open($pid, "c", 0777, strlen($data_str));
-        if (!$shm_id) {
-            Standards::debug("Couldn't create shared memory segment");
-        } else {
-            if (shmop_write($shm_id, $data_str, 0) != strlen($data_str)) {
-                Standards::debug("Couldn't write shared memory data");
-            }
-        }
-    }
-
-    /**
-     * @param int $hours
-     * @return bool
-     */
-    private function hoursPassed($hours = 6)
-    {
-        $currentTime = time();
-        $_24h = 60 * 60 * $hours;
-
-        $result = ($this->startTime + $_24h) > $currentTime;
-        if ($result) {
-            // reset startTime:
-            $this->startTime = time();
-        }
-
-        return $result;
-    }
-
-    /**
-     * @return array
-     */
-    public function getDataCollected()
-    {
-        return $this->dataCollected;
-    }
-
-    protected function signalAdd()
+    private function _deprecated_signalAdd()
     {
         $signals = array(
             SIGTERM,
@@ -322,17 +359,19 @@ class Service
     }
 
     /**
+     * Used by $this->signalAdd() in callback.
+     *
      * @param $sigNo
      */
-    protected function signalHandler($sigNo)
+    private function _deprecated_signalHandler($sigNo)
     {
         # send message to end them:
-        foreach ($this->PIDs as $pid) {
+        foreach ($this->PIDs as $pid => $ignore) {
             posix_kill($pid, $sigNo);
         }
 
         # wait to finish:
-        foreach ($this->PIDs as $pid) {
+        foreach ($this->PIDs as $pid => $ignore) {
             pcntl_waitpid($pid, $status);
         }
 

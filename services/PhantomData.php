@@ -2,17 +2,20 @@
 
 class PhantomData extends Service implements ServiceInterface
 {
-    private $dbo, $urls, $link_ids, $external_links, $curl;
+    private $dbo, $urls, $link_ids, $external_links, $userAgentName;
+    private $responses;
 
     function doSets(array $arguments = array())
     {
+        $this->userAgentName = 'boomlink';
+
         $this->dbo = new MySQL();
     }
 
     function doWork()
     {
         $RUN = true;
-        while ($RUN !== false) {
+        while ($RUN) {
             $this->urls = $this->getProjectLinks();
             if ($this->urls === FALSE) {
                 #$RUN = false;
@@ -23,13 +26,14 @@ class PhantomData extends Service implements ServiceInterface
                 $this->link_ids = array();
                 foreach ($this->urls as $a_no => $info) {
                     $this->link_ids[] = $info['id'];
-                    $this->external_links['phantom_' . $info['id']] = Config::getConfessLink($info['PageURL']);
+                    $this->external_links[$info['id']] = Config::getConfessLink($info['PageURL']);
                 }
 
                 // do the actual curl:
-                $this->curl = new Curl();
-                $this->curl->addLinks($this->external_links);
-                $this->curl->run();
+                $multi = new RequestMulti( $this->userAgentName );
+                $multi->addLinks( $this->external_links );
+                $multi->send();
+                $this->responses = $multi->getResponse();
 
                 // parse body's for needed data:
                 $this->parseData();
@@ -42,6 +46,8 @@ class PhantomData extends Service implements ServiceInterface
                 Standards::doDelay($this->serviceName . '[pid: ' . $this->getPID() . ']', Config::getDelay('phantom_data_pause'));
                 $this->dataCollected = array();
             }
+
+            # $RUN = false;
         }
     }
 
@@ -102,26 +108,17 @@ class PhantomData extends Service implements ServiceInterface
 
     private function parseData()
     {
-        $bodies = $this->curl->getBodyOnly();
-        foreach ($bodies as $key => $content) {
-            $parts = explode('_', $key);
-            $match = $parts[0];
-            $link_id = $parts[count($parts) - 1];
-
-            switch ($match) {
-                case 'phantom':
-                    $temp = json_decode($content, true);
-                    if (!is_array($temp)) {
-                        $temp = array(
-                            'duration' => 'n/a',
-                            'size' => 'n/a',
-                        );
-                    }
-
-                    $this->dataCollected[$link_id]['page_weight'] = $temp['size'];
-                    $this->dataCollected[$link_id]['load_time'] = $temp['duration'];
-                    break;
+        foreach ($this->responses as $key => $response) {
+            $temp = json_decode( $response->body, true );
+            if ( ! is_array( $temp )) {
+                $temp = array(
+                    'duration' => 'n/a',
+                    'size'     => 'n/a',
+                );
             }
+
+            $this->dataCollected[$response->linkId]['page_weight'] = $temp['size'];
+            $this->dataCollected[$response->linkId]['load_time']   = $temp['duration'];
         }
     }
 }

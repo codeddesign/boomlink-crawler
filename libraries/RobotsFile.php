@@ -2,18 +2,22 @@
 
 class RobotsFile
 {
-    private $link, $data;
+    private $link, $data, $userAgentName;
 
     /**
      * @param array $arguments
      */
     public function __construct(array $arguments = array('url' => '', 'domain_id' => ''))
     {
+        $this->userAgentName = 'boomlink';
+
         $this->link = trim($arguments['url']);
+
         $this->data = array(
             'domain' => Standards::getHost($this->link),
             'domain_id' => $arguments['domain_id']
         );
+
         $this->data['robots_file'] = false;
 
         $this->doWork();
@@ -24,15 +28,14 @@ class RobotsFile
      */
     private function doWork()
     {
-        $curl = new Curl();
-        $curl->addLinks($this->getRobotsLink());
-        $curl->run();
+        $single = new RequestSingle( $this->getRobotsLink(), $this->userAgentName );
+        $single->send();
+        $response = $single->getResponse();
 
-        $curlInfo = $curl->getLinkCurlInfo();
-        $curlInfo = (is_array($curlInfo)) ? $curlInfo[key($curlInfo)] : $curlInfo;
+        $body = $response->body;
+        $curlInfo = $response->curlInfo;
 
         if (isset($curlInfo['http_code']) AND substr($curlInfo['http_code'], 0, 2) == '20') {
-            $body = $curl->getBodyOnly();
             $this->data['robots_file'] = is_array($body) ?  $body[key($body)] : $body;
         }
     }
