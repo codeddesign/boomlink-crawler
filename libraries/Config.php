@@ -37,7 +37,7 @@ class Config
             'wait_for_finish_pause' => 1,
             'api_data_pause' => 1,
             'crawl_project_pause' => 1,
-            'phantom_data_wait' => 5,
+            'phantom_data_wait' => 3,
             'phantom_data_pause' => 5,
             'project_listener_pause' => 10,
             'proxy_data_wait' => 5,
@@ -65,7 +65,7 @@ class Config
     {
         $limit = array(
             'proxy_data' => 1,
-            'phantom_data' => 5,
+            'phantom_data' => 3,
             'api_data' => 5,
             'completed_listener' => 100,
         );

@@ -4,6 +4,7 @@ class CompletedListener extends Service implements ServiceInterface
 {
 
     protected $dbo, $domains;
+    protected $proxy_data, $api_data;
 
     public function doSets(array $arguments = array())
     {
@@ -25,6 +26,9 @@ class CompletedListener extends Service implements ServiceInterface
             if (is_array($algorithms) AND count($algorithms) AND count($this->domains)) {
                 foreach ($algorithms as $a_no => $algorithm) {
                     $linksStats = array();
+
+                    $this->setAlgorithmStats($algorithm);
+
                     $completedLinks = $this->getCompletedLinks($algorithm['id']);
 
                     if (is_array($completedLinks)) {
@@ -54,7 +58,23 @@ class CompletedListener extends Service implements ServiceInterface
      */
     private function getCompletedLinks($algorithm_id)
     {
-        $q = 'SELECT * FROM page_main_info WHERE parsed_status=1 AND api_data_status=1 AND proxy_data_status=1 AND sentimental_positive IS NOT NULL AND completed_algos NOT LIKE "%\"' . $algorithm_id . '\"%" LIMIT ' . Config::getQueryLimit('completed_listener');
+        $q['select'] = 'SELECT * FROM page_main_info WHERE';
+        $q['cond_1'] = 'parsed_status=1';
+
+        if($this->api_data) {
+            $q['cond_2'] = 'AND api_data_status=1';
+            //$q['cond_3'] = 'AND sentimental_positive IS NOT NULL';
+        }
+
+        if($this->proxy_data) {
+            $q['cond_4'] = 'AND proxy_data_status=1';
+        }
+
+        $q['cond_5'] = 'AND completed_algos NOT LIKE "%\"' . $algorithm_id . '\"%"';
+        $q['limit'] = 'LIMIT ' . Config::getQueryLimit('completed_listener');
+
+        $q = implode(' ', $q);
+
         return $this->dbo->getResults($q);
     }
 
@@ -79,6 +99,28 @@ class CompletedListener extends Service implements ServiceInterface
         return Standards::getDomainsAge($r);
     }
 
+    private function setAlgorithmStats( $algorithm ){
+        $algorithm_config = json_decode($algorithm['config'], 1);
+        $this->api_data = $this->proxy_data = false;
+        foreach ($algorithm_config as $type => $p) {
+            switch ($type) {
+                case 'incoming':
+                    if((int)$p > 0) {
+                        $this->api_data = true;
+                    }
+                    break;
+                case 'share':
+                case 'page_rank_0':
+                case 'page_rank_13':
+                case 'page_rank_46':
+                case 'page_rank_710':
+                    if((int)$p > 0) {
+                        $this->proxy_data = true;
+                    }
+                    break;
+            }
+        }
+    }
     /**
      * @param $algorithm
      * @param $cl
@@ -166,6 +208,7 @@ class CompletedListener extends Service implements ServiceInterface
 
         if (count($rows)) {
             $q = sprintf('INSERT INTO page_main_info_points (page_id, algo_id, points) VALUES %s', implode(', ', $rows));
+
             return $this->dbo->runQuery($q);
         }
 

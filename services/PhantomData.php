@@ -98,6 +98,7 @@ class PhantomData extends Service implements ServiceInterface
 
         $pattern = 'INSERT INTO page_main_info (%s) VALUES %s ON DUPLICATE KEY UPDATE %s';
         $q = sprintf($pattern, implode(',', $tableKeys), implode(',', $values), implode(', ', $updateKeys));
+
         return $this->dbo->runQuery($q);
     }
 
