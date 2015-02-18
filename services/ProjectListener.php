@@ -127,7 +127,6 @@ class ProjectListener extends Service implements ServiceInterface
         $parallelServices = array(
             'ProxyData',
             'PhantomData',
-            'CompletedListener'
         );
 
         foreach ($parallelServices as $s_no => $service) {
