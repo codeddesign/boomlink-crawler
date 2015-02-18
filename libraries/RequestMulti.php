@@ -50,9 +50,9 @@ class RequestMulti extends Request
         $out = array();
         foreach ($linksFromDb as $l_no => $link) {
             $out[] = array(
-                'linkId' => isset( $link['id'] ) ? $link['id'] : $l_no,
-                'link'   => isset( $link['PageURL'] ) ? $link['PageURL'] : $link,
-                'depth'  => isset( $link['depth'] ) ? $link['depth'] : 0,
+                'linkId' => ( is_array($link) AND isset( $link['id'] ) ) ? $link['id'] : $l_no,
+                'link'   => ( is_array($link) AND isset( $link['PageURL'] ) ) ? $link['PageURL'] : $link,
+                'depth'  => ( is_array($link) AND isset( $link['depth'] ) ) ? $link['depth'] : 0,
             );
         }
 

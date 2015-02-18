@@ -61,7 +61,7 @@ class RequestSingle extends Request
         $options = array(
             CURLOPT_URL            => $this->link,
             CURLOPT_USERAGENT      => $this->agent,
-            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_CONNECTTIMEOUT => 120,
             CURLOPT_HEADER         => true,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_RETURNTRANSFER => true,
